@@ -71,7 +71,13 @@ export default function Login() {
               </div>
               <div className="form-group">
                 <label>소속 사업부 *</label>
-                <input placeholder="영업본부" value={form.dept} onChange={e => setForm({...form, dept: e.target.value})} />
+                <select value={form.dept} onChange={e => setForm({...form, dept: e.target.value})}>
+                  <option value="">선택해주세요</option>
+                  <option value="CCB">CCB</option>
+                  <option value="COB">COB</option>
+                  <option value="CRB">CRB</option>
+                  <option value="CMS">CMS</option>
+                </select>
               </div>
               <div className="form-group">
                 <label>팀명 *</label>
