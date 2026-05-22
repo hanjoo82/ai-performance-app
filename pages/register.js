@@ -13,7 +13,7 @@ export default function Register() {
   const [form, setForm] = useState({
     task: '', content: '', effect: '',
     tool: '', toolEtc: '',
-    helperTeam: '', helperRole: '', helperName: '',
+    helperDept: '', helperTeam: '', helperRole: '', helperName: '',
     date: new Date().toISOString().split('T')[0]
   })
   const [submitting, setSubmitting] = useState(false)
@@ -25,13 +25,12 @@ export default function Register() {
   }, [loading, user])
 
   async function handleSubmit() {
-    const { task, content, effect, tool, toolEtc, helperTeam, helperRole, helperName, date } = form
+    const { task, content, effect, tool, toolEtc, helperDept, helperTeam, helperRole, helperName, date } = form
     if (!task || !content || !effect || !tool) { setError('필수 항목(*)을 모두 입력해주세요'); return }
     if (tool === '기타' && !toolEtc.trim()) { setError('기타 도구명을 입력해주세요'); return }
     setError('')
     setSubmitting(true)
     const finalTool = tool === '기타' ? toolEtc.trim() : tool
-    const helper = [helperTeam, helperRole, helperName].map(s => s.trim()).filter(Boolean).join(' / ')
     try {
       await addRecord({
         email,
@@ -40,7 +39,10 @@ export default function Register() {
         user_team: user.team,
         task, content, effect,
         tool: finalTool,
-        helper,
+        helper_dept: helperDept || null,
+        helper_team: helperTeam.trim() || null,
+        helper_role: helperRole.trim() || null,
+        helper_name: helperName.trim() || null,
         date
       })
       setSuccess(true)
@@ -104,8 +106,15 @@ export default function Register() {
             />
           </div>
           <div className="form-group">
-            <label>소개 또는 도움 준 직원</label>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+            <label>소개 또는 도움 준 직원 <span style={{color:'var(--text3)',fontWeight:400,fontSize:12}}>(선택)</span></label>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              <select value={form.helperDept} onChange={e => f('helperDept', e.target.value)}>
+                <option value="">사업부</option>
+                <option value="CCB">CCB</option>
+                <option value="COB">COB</option>
+                <option value="CRB">CRB</option>
+                <option value="CMS">CMS</option>
+              </select>
               <input placeholder="팀명" value={form.helperTeam} onChange={e => f('helperTeam', e.target.value)} />
               <input placeholder="직책" value={form.helperRole} onChange={e => f('helperRole', e.target.value)} />
               <input placeholder="성명" value={form.helperName} onChange={e => f('helperName', e.target.value)} />
