@@ -52,7 +52,6 @@ export default function Login() {
         </div>
 
         <div className={styles.logo}>
-          <div className={styles.logoIcon}><i className="ti ti-brain" /></div>
           <div className={styles.logoText}>AI 활용 성과 관리</div>
           <div className={styles.logoSub}>직원 AI 실적 등록 · 평가 시스템</div>
         </div>
