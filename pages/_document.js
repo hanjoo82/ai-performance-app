@@ -5,10 +5,10 @@ export default function Document() {
     <Html lang="ko">
       <Head>
         <meta charSet="utf-8" />
-        <meta name="application-name" content="AI 성과 관리" />
+        <meta name="application-name" content="HJ AI log" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="AI 성과 관리" />
+        <meta name="apple-mobile-web-app-title" content="HJ AI log" />
         <meta name="description" content="직원 AI 활용 실적 등록 및 평가 시스템" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#1a2f4a" />
