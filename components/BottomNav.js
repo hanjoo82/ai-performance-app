@@ -14,17 +14,17 @@ const ceoItems = [
   { href: '/report', icon: 'ti-download', label: '보고서' },
 ]
 
-export default function BottomNav({ dark = false }) {
+export default function BottomNav() {
   const router = useRouter()
   const { isCeo } = useAuth()
   const items = isCeo ? [...navItems, ...ceoItems] : navItems
 
   return (
-    <nav className={`${styles.nav} ${dark ? styles.navDark : ''}`}>
+    <nav className={styles.nav}>
       {items.map(item => (
         <button
           key={item.href}
-          className={`${styles.item} ${dark ? styles.itemDark : ''} ${router.pathname === item.href ? styles.active : ''}`}
+          className={`${styles.item} ${router.pathname === item.href ? styles.active : ''}`}
           onClick={() => router.push(item.href)}
         >
           <i className={`ti ${item.icon}`} />

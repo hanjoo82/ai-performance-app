@@ -12,13 +12,6 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-.navDark {
-  background: rgba(9, 14, 30, 0.86);
-  border-top: 1px solid rgba(94, 118, 201, 0.38);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
 .item {
   flex: 1;
   display: flex;
@@ -38,10 +31,6 @@
   touch-action: manipulation;
 }
 
-.itemDark {
-  color: rgba(182, 197, 255, 0.72);
-}
-
 .item i {
   font-size: 22px;
   line-height: 1;
@@ -51,31 +40,10 @@
   background: var(--surface2);
 }
 
-.itemDark:active {
-  background: rgba(77, 98, 172, 0.18);
-}
-
 .active {
   color: var(--accent);
-  position: relative;
 }
 
 .active i {
   font-weight: 700;
-}
-
-.navDark .active {
-  color: #89ebff;
-  text-shadow: 0 0 10px rgba(64, 214, 255, 0.34);
-}
-
-.navDark .active::before {
-  content: '';
-  position: absolute;
-  top: 5px;
-  width: 26px;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #6ea0ff 0%, #83ecff 100%);
-  box-shadow: 0 0 8px rgba(95, 196, 255, 0.65);
 }
