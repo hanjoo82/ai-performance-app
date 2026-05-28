@@ -53,7 +53,6 @@ export default function Login() {
           <div className={styles.companyLogo}>
             <Image src="/hanjoo-logo.png" alt="HANJOO" width={80} height={110} style={{ objectFit: 'contain' }} priority />
           </div>
-          <div className={styles.divider} />
           <div className={styles.quote}>
             <span className={styles.quoteMarkOpen}>&ldquo;</span>
             <p className={styles.quoteMain}>
@@ -72,12 +71,14 @@ export default function Login() {
         {/* 하단 로그인 카드 영역 */}
         <div className={styles.bottom}>
           <div className={styles.appTitle}>AI 활용 성과 관리 시스템</div>
+          <p className={styles.appSubTitle}>성장과 공정한 평가를 위한 AI 성과 관리 플랫폼</p>
 
           <div className={styles.card}>
             {!isNew ? (
               <>
+                <div className={styles.cardTitle}>본인 인증</div>
                 <div className="form-group">
-                  <label>이메일 주소</label>
+                  <label>회사 이메일</label>
                   <input
                     type="email"
                     placeholder="id@hjcustoms.co.kr"
@@ -88,8 +89,9 @@ export default function Login() {
                     autoFocus
                   />
                 </div>
+
                 {error && <div className="alert alert-danger">{error}</div>}
-                <button className="btn btn-primary btn-block" onClick={handleEmailNext} disabled={loading}>
+                <button className={`btn btn-primary btn-block ${styles.ctaBtn}`} onClick={handleEmailNext} disabled={loading}>
                   {loading ? '확인 중...' : '계속하기'}
                 </button>
               </>
@@ -121,16 +123,13 @@ export default function Login() {
                   <input placeholder="과장" value={form.role} onChange={e => setForm({...form, role: e.target.value})} />
                 </div>
                 {error && <div className="alert alert-danger">{error}</div>}
-                <button className="btn btn-primary btn-block" onClick={handleRegister} disabled={loading}>
+                <button className={`btn btn-primary btn-block ${styles.ctaBtn}`} onClick={handleRegister} disabled={loading}>
                   {loading ? '등록 중...' : '등록하고 시작하기'}
                 </button>
               </>
             )}
           </div>
 
-          <p className={styles.footerNote}>
-            이 앱은 보고를 위한 도구가 아니라 성장과 공정한 평가를 위한 약속입니다.
-          </p>
         </div>
 
       </div>

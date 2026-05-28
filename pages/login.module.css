@@ -84,35 +84,62 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 28px 20px 32px;
+  padding: 30px 20px 36px;
   flex: 1;
 }
 
 .appTitle {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text3);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  margin-bottom: 16px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-text);
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+  text-align: center;
 }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 24px 20px;
-  width: 100%;
+.appSubTitle {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--text2);
+  text-align: center;
+  line-height: 1.5;
   max-width: 360px;
 }
 
+.card {
+  background: #ffffff;
+  border: 1px solid #d5e0ef;
+  border-radius: 16px;
+  padding: 20px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 10px 24px rgba(14, 34, 64, 0.08);
+}
+
+.cardTitle {
+  margin-bottom: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-text);
+  letter-spacing: -0.01em;
+}
+
+.ctaBtn {
+  margin-top: 2px;
+  border-radius: 12px;
+  height: 50px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
 .footerNote {
-  margin-top: 20px;
-  font-size: 11px;
+  margin-top: 24px;
+  font-size: 12px;
   color: var(--text3);
   text-align: center;
-  line-height: 1.6;
-  max-width: 300px;
+  line-height: 1.7;
+  max-width: 360px;
 }
 
 .newBadge {
@@ -125,4 +152,23 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .appTitle {
+    font-size: 22px;
+  }
+
+  .card {
+    max-width: 360px;
+    border-radius: 14px;
+  }
+
+  .cardTitle {
+    font-size: 17px;
+  }
+
+  .ctaBtn {
+    font-size: 16px;
+  }
 }
