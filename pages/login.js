@@ -67,13 +67,17 @@ export default function Login() {
   }
 
   async function handleInstallApp() {
-    if (!deferredPrompt) return
-    deferredPrompt.prompt()
-    const choice = await deferredPrompt.userChoice
-    if (choice?.outcome === 'accepted') {
-      setDeferredPrompt(null)
-      setIsInstallable(false)
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      const choice = await deferredPrompt.userChoice
+      if (choice?.outcome === 'accepted') {
+        setDeferredPrompt(null)
+        setIsInstallable(false)
+      }
+      return
     }
+
+    alert('이 브라우저에서는 자동 설치 팝업이 제한됩니다.\nChrome 또는 Safari에서 열고 브라우저 메뉴의 "홈 화면에 추가"를 사용해 주세요.')
   }
 
   return (
@@ -163,17 +167,12 @@ export default function Login() {
             )}
           </div>
 
-          {isInstallable && (
-            <button className={`btn btn-ghost ${styles.installBtn}`} onClick={handleInstallApp}>
-              <i className="ti ti-device-mobile-down" /> 홈 화면에 앱 설치
-            </button>
-          )}
-
-          {!isInstallable && (
-            <p className={styles.installGuide}>
-              설치 메뉴가 보이지 않으면 Chrome 또는 Safari에서 페이지를 열어 주세요.
-            </p>
-          )}
+          <button className={`btn ${isInstallable ? 'btn-primary' : 'btn-ghost'} ${styles.installBtn}`} onClick={handleInstallApp}>
+            <i className="ti ti-device-mobile-down" /> 홈 화면에 앱 설치
+          </button>
+          <p className={styles.installGuide}>
+            설치 팝업이 뜨지 않으면 Chrome 또는 Safari에서 열어 설치해 주세요.
+          </p>
 
         </div>
 

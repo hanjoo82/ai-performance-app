@@ -135,7 +135,9 @@
 
 .installBtn {
   margin-top: 12px;
-  min-width: 220px;
+  width: 100%;
+  max-width: 420px;
+  min-height: 44px;
   border-color: #bfd2ea;
   color: var(--accent-text);
   background: rgba(255, 255, 255, 0.75);
