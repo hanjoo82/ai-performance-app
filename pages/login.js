@@ -50,10 +50,8 @@ export default function Login() {
     const { name, dept, team, role } = form
     if (!name || !dept || !team || !role) { setError('모든 항목을 입력해주세요'); return }
     setLoading(true)
-    const ceoEmail = (process.env.NEXT_PUBLIC_CEO_EMAIL || '').toLowerCase().trim()
-    const is_ceo = !!ceoEmail && email.toLowerCase().trim() === ceoEmail
     try {
-      await register(email, { name, dept, team, role, is_ceo })
+      await register(email, { name, dept, team, role })
       router.push('/')
     } catch (err) {
       const detail = [err?.message, err?.details, err?.hint, err?.code].filter(Boolean).join(' | ')
