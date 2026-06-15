@@ -3,3 +3,6 @@
 
 alter table records add column if not exists deleted_at timestamptz;
 alter table records add column if not exists deleted_by text;
+
+-- API 스키마 캐시 갱신
+notify pgrst, 'reload schema';
