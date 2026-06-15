@@ -49,6 +49,10 @@ export default function List() {
     getRecords().then((r) => {
       setRecords(r)
       setFetching(false)
+    }).catch((err) => {
+      console.error('records load failed:', err)
+      alert(`실적을 불러오지 못했습니다.\n${err?.message || err}`)
+      setFetching(false)
     })
   }, [email])
 

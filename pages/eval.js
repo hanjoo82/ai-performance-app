@@ -6,6 +6,7 @@ import {
   getCommentsByRecordIds,
   getDeletedRecords,
   getRecords,
+  restoreAllDeletedRecords,
   restoreRecord,
   softDeleteRecord,
   updateRecord,
@@ -158,6 +159,22 @@ export default function Eval() {
       alert(`복구 실패\n${err?.message || err}`)
     } finally {
       setSaving(p => ({ ...p, [rec.id]: false }))
+    }
+  }
+
+  async function handleRestoreAll() {
+    if (deletedRecords.length === 0) return
+    if (!confirm(`삭제함 ${deletedRecords.length}건을 모두 복구할까요?`)) return
+    setSaving(p => ({ ...p, __all: true }))
+    try {
+      const { restored } = await restoreAllDeletedRecords()
+      await loadEvalData()
+      alert(`${restored}건 복구했습니다.`)
+      setTab('finalized')
+    } catch (err) {
+      alert(`복구 실패\n${err?.message || err}`)
+    } finally {
+      setSaving(p => ({ ...p, __all: false }))
     }
   }
 
@@ -349,6 +366,17 @@ export default function Eval() {
             </button>
           ))}
         </div>
+
+        {isDeletedTab && deletedRecords.length > 0 && (
+          <button
+            className="btn btn-primary btn-block"
+            style={{ marginBottom: 16 }}
+            onClick={handleRestoreAll}
+            disabled={saving.__all}
+          >
+            {saving.__all ? '복구 중...' : `전체 복구 (${deletedRecords.length}건)`}
+          </button>
+        )}
 
         {shown.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>
