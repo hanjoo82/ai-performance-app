@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { useAuth } from '../lib/useAuth'
 import { addRecordComment, deleteRecord, getCommentsByRecordIds, getRecords, updateRecord } from '../lib/db'
 import Layout from '../components/Layout'
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal'
 import Head from 'next/head'
 
 function getEvalStatus(record, comments) {
@@ -28,6 +29,7 @@ export default function Eval() {
   const [feedbacks, setFeedbacks] = useState({})
   const [commentsByRecord, setCommentsByRecord] = useState({})
   const [saving, setSaving] = useState({})
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   useEffect(() => {
     if (!loading) {
@@ -111,8 +113,9 @@ export default function Eval() {
     }
   }
 
-  async function removeRecord(rec) {
-    if (!confirm(`「${rec.task}」을(를) 삭제할까요?\n삭제하면 복구할 수 없습니다.`)) return
+  async function confirmRemoveRecord() {
+    const rec = deleteTarget
+    if (!rec) return
     setSaving(p => ({ ...p, [rec.id]: true }))
     try {
       await deleteRecord(rec.id)
@@ -122,6 +125,7 @@ export default function Eval() {
         delete next[rec.id]
         return next
       })
+      setDeleteTarget(null)
     } catch (err) {
       alert(`삭제 실패\n${err?.message || err}`)
     } finally {
@@ -279,7 +283,7 @@ export default function Eval() {
                   </div>
                   <button
                     className="btn btn-danger btn-block"
-                    onClick={() => removeRecord(r)}
+                    onClick={() => setDeleteTarget(r)}
                     disabled={saving[r.id]}
                   >
                     {saving[r.id] ? '삭제 중...' : '삭제'}
@@ -290,6 +294,13 @@ export default function Eval() {
           )
         })}
       </Layout>
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        title={deleteTarget?.task}
+        confirming={deleteTarget ? !!saving[deleteTarget.id] : false}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmRemoveRecord}
+      />
     </>
   )
 }

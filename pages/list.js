@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { useAuth } from '../lib/useAuth'
 import { deleteRecord, getRecords, updateRecord } from '../lib/db'
 import Layout from '../components/Layout'
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal'
 import Head from 'next/head'
 
 const PERIODS = [
@@ -39,6 +40,8 @@ export default function List() {
   const [period, setPeriod] = useState('all')
   const [expanded, setExpanded] = useState(() => new Set())
   const [fetching, setFetching] = useState(true)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login')
@@ -72,29 +75,26 @@ export default function List() {
     })
   }
 
-  async function removeMyRecord(rec) {
-    if (rec.email !== email) return
-    if ((rec.score || 0) > 0) {
+  function openDelete(rec) {
+    if (rec.email === email && (rec.score || 0) > 0) {
       alert('평가 완료된 실적은 삭제할 수 없습니다.')
       return
     }
-    if (!confirm('이 실적을 삭제할까요?')) return
-    try {
-      await deleteRecord(rec.id)
-      setRecords(prev => prev.filter(r => r.id !== rec.id))
-    } catch (err) {
-      alert(`삭제 실패\n${err?.message || err}`)
-    }
+    setDeleteTarget(rec)
   }
 
-  async function removeRecordAsAdmin(rec) {
-    if (!isCeo) return
-    if (!confirm(`「${rec.task}」을(를) 삭제할까요?\n삭제하면 복구할 수 없습니다.`)) return
+  async function confirmRemoveRecord() {
+    const rec = deleteTarget
+    if (!rec) return
+    setDeleting(true)
     try {
       await deleteRecord(rec.id)
       setRecords(prev => prev.filter(r => r.id !== rec.id))
+      setDeleteTarget(null)
     } catch (err) {
       alert(`삭제 실패\n${err?.message || err}`)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -232,7 +232,7 @@ export default function List() {
                         <button
                           className="btn btn-danger"
                           style={{ padding: '8px 10px' }}
-                          onClick={e => { e.stopPropagation(); removeMyRecord(r) }}
+                          onClick={e => { e.stopPropagation(); openDelete(r) }}
                         >
                           삭제
                         </button>
@@ -245,7 +245,7 @@ export default function List() {
                       <button
                         className="btn btn-danger btn-block"
                         style={{ padding: '8px 10px' }}
-                        onClick={e => { e.stopPropagation(); removeRecordAsAdmin(r) }}
+                        onClick={e => { e.stopPropagation(); openDelete(r) }}
                       >
                         삭제
                       </button>
@@ -257,6 +257,13 @@ export default function List() {
           )
         })}
       </Layout>
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        title={deleteTarget?.task}
+        confirming={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmRemoveRecord}
+      />
     </>
   )
 }
