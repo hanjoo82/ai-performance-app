@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../lib/useAuth'
-import { deleteRecord, getRecords, updateRecord } from '../lib/db'
+import { getRecords, softDeleteRecord, updateRecord } from '../lib/db'
 import Layout from '../components/Layout'
 import Head from 'next/head'
 
@@ -74,9 +74,9 @@ export default function List() {
       alert('평가 완료된 실적은 삭제할 수 없습니다.')
       return
     }
-    if (!confirm('이 실적을 삭제할까요?')) return
+    if (!confirm('이 실적을 삭제 목록으로 이동할까요?')) return
     try {
-      await deleteRecord(rec.id)
+      await softDeleteRecord(rec.id, email)
       setRecords(prev => prev.filter(r => r.id !== rec.id))
     } catch (err) {
       alert(`삭제 실패\n${err?.message || err}`)
@@ -85,9 +85,9 @@ export default function List() {
 
   async function removeRecordAsAdmin(rec) {
     if (!isCeo) return
-    if (!confirm(`「${rec.task}」 평가 완료 실적을 삭제할까요?\n삭제하면 복구할 수 없습니다.`)) return
+    if (!confirm(`「${rec.task}」을(를) 삭제 목록으로 이동할까요?`)) return
     try {
-      await deleteRecord(rec.id)
+      await softDeleteRecord(rec.id, email)
       setRecords(prev => prev.filter(r => r.id !== rec.id))
     } catch (err) {
       alert(`삭제 실패\n${err?.message || err}`)
@@ -243,7 +243,7 @@ export default function List() {
                         style={{ padding: '8px 10px' }}
                         onClick={e => { e.stopPropagation(); removeRecordAsAdmin(r) }}
                       >
-                        평가 완료 건 삭제 (관리자)
+                        삭제
                       </button>
                     </div>
                   )}

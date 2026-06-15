@@ -35,6 +35,8 @@ create table if not exists records (
   feedback    text default '',
   likes       int default 0,
   liked_by    text[] default '{}',
+  deleted_at  timestamptz,
+  deleted_by  text,
   created_at  timestamptz default now()
 );
 
