@@ -81,7 +81,7 @@ export default function Ranking() {
       <Head><title>랭킹 보드 · AI 성과 관리</title></Head>
       <Layout title="랭킹 보드">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          대표 평가 점수 기준 전사 순위 · 10위까지 실명, 11위부터 익명(OOO)
+          대표 평가 점수 기준 전사 순위
         </p>
 
         {fetching ? (
