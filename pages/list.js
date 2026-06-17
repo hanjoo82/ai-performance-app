@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../lib/useAuth'
-import { deleteRecord, getRecords, updateRecord } from '../lib/db'
+import { addRecordComment, deleteRecord, getCommentsByRecordIds, getRecords, updateRecord } from '../lib/db'
+import { getEvalStatus } from '../lib/evalStatus'
 import Layout from '../components/Layout'
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal'
+import RecordFeedbackThread from '../components/RecordFeedbackThread'
 import Head from 'next/head'
 
 const PERIODS = [
@@ -29,6 +31,8 @@ function periodStart(key) {
 
 const STATUS_STYLE = {
   submitted: { cls: 'badge-gray', label: '평가 대기' },
+  revision_requested: { cls: 'badge-gold', label: '보완 요청' },
+  resubmitted: { cls: 'badge-info', label: '재검토요청' },
   finalized: { cls: 'badge-gold', label: '평가완료' },
 }
 
@@ -42,15 +46,42 @@ export default function List() {
   const [fetching, setFetching] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [commentsByRecord, setCommentsByRecord] = useState({})
+  const [replyDrafts, setReplyDrafts] = useState({})
+  const [replySaving, setReplySaving] = useState({})
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login')
   }, [loading, user])
 
   useEffect(() => {
+    if (router.query.filter === 'mine') setFilter('mine')
+  }, [router.query.filter])
+
+  useEffect(() => {
+    if (router.query.filter !== 'mine' || fetching || !email) return
+    const needReplyIds = records
+      .filter(r => r.email === email && getEvalStatus(r, commentsByRecord[r.id] || []) === 'revision_requested')
+      .map(r => r.id)
+    if (needReplyIds.length === 0) return
+    setExpanded(prev => new Set([...prev, ...needReplyIds]))
+  }, [router.query.filter, fetching, records, commentsByRecord, email])
+
+  useEffect(() => {
     if (!email) return
-    getRecords().then((r) => {
+    getRecords().then(async (r) => {
       setRecords(r)
+      try {
+        const comments = await getCommentsByRecordIds(r.map(rec => rec.id))
+        const grouped = comments.reduce((acc, c) => {
+          if (!acc[c.record_id]) acc[c.record_id] = []
+          acc[c.record_id].push(c)
+          return acc
+        }, {})
+        setCommentsByRecord(grouped)
+      } catch (err) {
+        console.warn('record_comments load failed:', err?.message || err)
+      }
       setFetching(false)
     }).catch((err) => {
       console.error('records load failed:', err)
@@ -58,6 +89,30 @@ export default function List() {
       setFetching(false)
     })
   }, [email])
+
+  async function submitReply(rec) {
+    const message = (replyDrafts[rec.id] || '').trim()
+    if (!message) return
+    setReplySaving(prev => ({ ...prev, [rec.id]: true }))
+    try {
+      const created = await addRecordComment({
+        record_id: rec.id,
+        author_email: email,
+        author_name: user?.name || '등록자',
+        author_role: 'submitter',
+        message,
+      })
+      setCommentsByRecord(prev => ({
+        ...prev,
+        [rec.id]: [...(prev[rec.id] || []), created],
+      }))
+      setReplyDrafts(prev => ({ ...prev, [rec.id]: '' }))
+    } catch (err) {
+      alert(`답변 저장 실패\n${err?.message || err}`)
+    } finally {
+      setReplySaving(prev => ({ ...prev, [rec.id]: false }))
+    }
+  }
 
   async function toggleLike(rec) {
     const liked = (rec.liked_by || []).includes(email)
@@ -153,14 +208,23 @@ export default function List() {
           const u = r.users || {}
           const liked = (r.liked_by || []).includes(email)
           const isOpen = expanded.has(r.id)
-          const status = (r.score || 0) > 0 ? 'finalized' : 'submitted'
+          const comments = commentsByRecord[r.id] || []
+          const evalStatus = getEvalStatus(r, comments)
+          const statusStyle = STATUS_STYLE[evalStatus] || STATUS_STYLE.submitted
           const canModify = r.email === email && (r.score || 0) === 0
+          const canReply = r.email === email
           const canAdminDelete = isCeo && (r.score || 0) > 0
+          const needsReply = canReply && evalStatus === 'revision_requested'
           return (
             <div
               key={r.id}
               className="card"
-              style={{ marginBottom: 12, cursor: 'pointer' }}
+              style={{
+                marginBottom: 12,
+                cursor: 'pointer',
+                borderColor: needsReply ? 'var(--gold)' : undefined,
+                boxShadow: needsReply ? '0 0 0 1px var(--gold-light)' : undefined,
+              }}
               onClick={() => toggleExpand(r.id)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -171,11 +235,17 @@ export default function List() {
                   <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.4 }}>{r.task}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                  <span className={`badge ${STATUS_STYLE[status].cls}`}>{STATUS_STYLE[status].label}</span>
+                  <span className={`badge ${statusStyle.cls}`}>{statusStyle.label}</span>
                   <span className="tool-tag">{r.tool}</span>
                   <i className={`ti ${isOpen ? 'ti-chevron-up' : 'ti-chevron-down'}`} style={{ color: 'var(--text3)' }} />
                 </div>
               </div>
+
+              {needsReply && !isOpen && (
+                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--gold-text)' }}>
+                  <i className="ti ti-message-circle" /> 평가자 의견에 답변이 필요합니다 · 펼쳐서 답변
+                </div>
+              )}
 
               {isOpen && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
@@ -206,10 +276,22 @@ export default function List() {
                     </button>
                   </div>
 
-                  {r.feedback && (
+                  {r.feedback && evalStatus === 'finalized' && (
                     <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--accent-light)', borderRadius: 8, fontSize: 13, color: 'var(--accent-text)' }}>
                       <i className="ti ti-message-circle" /> 최종 평가: {r.feedback}
                     </div>
+                  )}
+
+                  {(comments.length > 0 || canReply) && (
+                    <RecordFeedbackThread
+                      record={r}
+                      comments={comments}
+                      replyDraft={replyDrafts[r.id] || ''}
+                      replySaving={!!replySaving[r.id]}
+                      allowReply={canReply}
+                      onReplyDraftChange={value => setReplyDrafts(prev => ({ ...prev, [r.id]: value }))}
+                      onSubmitReply={() => submitReply(r)}
+                    />
                   )}
 
                   {canModify && (

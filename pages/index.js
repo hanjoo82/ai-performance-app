@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../lib/useAuth'
 import { addRecordComment, getCommentsByRecordIds, getMyRecords, getRecords } from '../lib/db'
-import { countRecordsByEvalStatus } from '../lib/evalStatus'
+import { canSubmitterReply, countRecordsByEvalStatus } from '../lib/evalStatus'
+import RecordFeedbackThread from '../components/RecordFeedbackThread'
 import Layout from '../components/Layout'
 import Head from 'next/head'
 
@@ -92,6 +93,10 @@ export default function Home() {
   const scored = myRecs.filter(r => r.score > 0)
   const myAvg = scored.length ? (scored.reduce((a, r) => a + r.score, 0) / scored.length).toFixed(1) : '-'
 
+  const pendingReplyCount = myRecs.filter(r =>
+    canSubmitterReply(r, commentsByRecord[r.id] || [])
+  ).length
+
   return (
     <>
       <Head><title>홈 · AI 성과 관리</title></Head>
@@ -150,6 +155,13 @@ export default function Home() {
           </div>
         )}
 
+        {!isCeo && pendingReplyCount > 0 && (
+          <div className="alert alert-info" style={{ cursor: 'pointer', marginBottom: 16, background: 'var(--gold-light)', color: 'var(--gold-text)' }} onClick={() => router.push('/list?filter=mine')}>
+            <i className="ti ti-message-circle" />
+            보완 요청 답변 대기 <strong>{pendingReplyCount}건</strong> · 실적 조회에서 답변하기 →
+          </div>
+        )}
+
         {/* 빠른 메뉴 */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
           <button className="card" style={{border:'1.5px solid var(--accent-light)',cursor:'pointer',textAlign:'left'}} onClick={() => router.push('/register')}>
@@ -186,42 +198,17 @@ export default function Home() {
                 {r.score > 0 && r.feedback && <span style={{fontSize:12,color:'var(--accent)',flex:1,whiteSpace:'normal',wordBreak:'break-word'}}>최종 평가: {r.feedback}</span>}
               </div>
 
-              {(commentsByRecord[r.id] || []).length > 0 && (
-                <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:6}}>
-                  {(commentsByRecord[r.id] || []).slice(-3).map(c => (
-                    <div key={c.id} style={{
-                      padding:'7px 10px',
-                      borderRadius:8,
-                      background:c.author_role === 'evaluator' ? 'var(--accent-light)' : 'var(--surface2)',
-                      color:c.author_role === 'evaluator' ? 'var(--accent-text)' : 'var(--text2)',
-                      fontSize:12
-                    }}>
-                      <div style={{fontSize:10,opacity:0.8,marginBottom:2}}>
-                        {c.author_role === 'evaluator' ? '평가자' : '등록자'} · {(c.created_at || '').slice(0, 16).replace('T', ' ')}
-                      </div>
-                      {c.message}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {r.score === 0 && (() => {
-                const comments = commentsByRecord[r.id] || []
-                const last = comments[comments.length - 1]
-                return last?.author_role === 'evaluator'
-              })() && (
-                <div style={{marginTop:8}}>
-                  <textarea
-                    placeholder="피드백에 대한 답변 작성"
-                    style={{minHeight:54,marginBottom:6}}
-                    value={replyDrafts[r.id] || ''}
-                    onChange={e => setReplyDrafts(prev => ({ ...prev, [r.id]: e.target.value }))}
-                  />
-                  <button className="btn btn-ghost" style={{width:'100%'}} disabled={replySaving[r.id]} onClick={() => submitReply(r)}>
-                    {replySaving[r.id] ? '저장 중...' : '답변 저장'}
-                  </button>
-                </div>
-              )}
+              {(commentsByRecord[r.id] || []).length > 0 || canSubmitterReply(r, commentsByRecord[r.id] || []) ? (
+                <RecordFeedbackThread
+                  record={r}
+                  comments={commentsByRecord[r.id] || []}
+                  replyDraft={replyDrafts[r.id] || ''}
+                  replySaving={!!replySaving[r.id]}
+                  onReplyDraftChange={value => setReplyDrafts(prev => ({ ...prev, [r.id]: value }))}
+                  onSubmitReply={() => submitReply(r)}
+                  compact
+                />
+              ) : null}
             </div>
           ))}
         </div>
