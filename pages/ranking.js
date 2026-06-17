@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../lib/useAuth'
 import { getRecords, getUsers } from '../lib/db'
-import { buildUserRankings, rankDisplay } from '../lib/ranking'
+import { buildUserRankings, displayRankingName, rankDisplay, showRankingProfile } from '../lib/ranking'
 import Layout from '../components/Layout'
 import Head from 'next/head'
 
-function RankRow({ entry, isMe }) {
+function RankRow({ entry, viewerEmail }) {
+  const isMe = entry.email === viewerEmail
   const medal = entry.rank <= 3
+  const showProfile = showRankingProfile(entry, viewerEmail)
+
   return (
     <div
       style={{
@@ -34,11 +37,13 @@ function RankRow({ entry, isMe }) {
       </div>
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 700, fontSize: 15 }}>
-          {entry.user.name || entry.email}
+          {displayRankingName(entry, viewerEmail)}
           {isMe && <span className="badge badge-green" style={{ marginLeft: 8 }}>나</span>}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-          {entry.user.dept} · {entry.user.team} · {entry.cnt}건 평가
+          {showProfile
+            ? `${entry.user.dept} · ${entry.user.team} · ${entry.cnt}건 평가`
+            : `${entry.cnt}건 평가`}
         </div>
       </div>
       <div style={{ textAlign: 'right' }}>
@@ -69,17 +74,14 @@ export default function Ranking() {
 
   if (loading || !user) return null
 
-  const top5 = ranked.slice(0, 5)
-  const top5Emails = new Set(top5.map(r => r.email))
   const myEntry = ranked.find(r => r.email === email)
-  const showMyEntrySeparately = myEntry && !top5Emails.has(email)
 
   return (
     <>
       <Head><title>랭킹 보드 · AI 성과 관리</title></Head>
       <Layout title="랭킹 보드">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          대표 평가 점수 기준 전사 순위 · TOP 5
+          대표 평가 점수 기준 전사 순위 · 10위까지 실명, 11위부터 익명(OOO)
         </p>
 
         {fetching ? (
@@ -88,26 +90,9 @@ export default function Ranking() {
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>아직 평가된 실적이 없습니다</div>
         ) : (
           <>
-            {top5.map(r => (
-              <RankRow key={r.email} entry={r} isMe={r.email === email} />
+            {ranked.map(r => (
+              <RankRow key={r.email} entry={r} viewerEmail={email} />
             ))}
-
-            {showMyEntrySeparately && (
-              <>
-                <div
-                  style={{
-                    margin: '18px 0 12px',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: 'var(--text3)',
-                    textAlign: 'center',
-                  }}
-                >
-                  ··· 내 순위 ···
-                </div>
-                <RankRow entry={myEntry} isMe />
-              </>
-            )}
 
             {!myEntry && (
               <div
