@@ -11,6 +11,17 @@ const STATUS_LABEL = EVAL_STATUS_LABEL
 
 const EVAL_TABS = ['submitted', 'revision_requested', 'resubmitted', 'finalized']
 
+const STATUS_STYLE = {
+  submitted: { cls: 'badge-gray', label: '제출' },
+  revision_requested: { cls: 'badge-gold', label: STATUS_LABEL.revision_requested },
+  resubmitted: { cls: 'badge-info', label: STATUS_LABEL.resubmitted },
+  finalized: { cls: 'badge-gold', label: '평가완료' },
+}
+
+function recordDate(r) {
+  return r.date || (r.created_at ? r.created_at.slice(0, 10) : '')
+}
+
 export default function Eval() {
   const { user, email, loading, isCeo } = useAuth()
   const router = useRouter()
@@ -22,6 +33,7 @@ export default function Eval() {
   const [commentsByRecord, setCommentsByRecord] = useState({})
   const [saving, setSaving] = useState({})
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [expanded, setExpanded] = useState(() => new Set())
 
   useEffect(() => {
     if (!loading) {
@@ -36,6 +48,19 @@ export default function Eval() {
       setTab(tabFromQuery)
     }
   }, [router.query.tab])
+
+  useEffect(() => {
+    setExpanded(new Set())
+  }, [tab])
+
+  function toggleExpand(id) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   useEffect(() => {
     if (!isCeo) return
@@ -226,30 +251,42 @@ export default function Eval() {
           const u = r.users || {}
           const comments = commentsByRecord[r.id] || []
           const status = getEvalStatus(r, comments)
+          const statusStyle = STATUS_STYLE[status] || STATUS_STYLE.submitted
           const isFinalized = status === 'finalized'
+          const isOpen = expanded.has(r.id)
           return (
-            <div key={r.id} className="card" style={{ marginBottom: 14, opacity: saving[r.id] ? 0.6 : 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>{r.task}</div>
-                <span className="tool-tag">{r.tool}</span>
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
-                {u.name || r.user_name} · {u.team || r.user_team} · {r.date}
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <span className={`badge ${isFinalized ? 'badge-gold' : 'badge-info'}`}>{STATUS_LABEL[status]}</span>
+            <div
+              key={r.id}
+              className="card"
+              style={{ marginBottom: 12, cursor: 'pointer', opacity: saving[r.id] ? 0.6 : 1 }}
+              onClick={() => toggleExpand(r.id)}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4 }}>
+                    {u.name || r.user_name} · {u.team || r.user_team}
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.4 }}>{r.task}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <span className={`badge ${statusStyle.cls}`}>{statusStyle.label}</span>
+                  <span className="tool-tag">{r.tool}</span>
+                  <i className={`ti ${isOpen ? 'ti-chevron-up' : 'ti-chevron-down'}`} style={{ color: 'var(--text3)' }} />
+                </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', marginBottom: 4 }}>AI 활용 내용</div>
-                  <div style={{ fontSize: 13 }}>{r.content}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', marginBottom: 4 }}>활용 효과</div>
-                  <div style={{ fontSize: 13 }}>{r.effect}</div>
-                </div>
-              </div>
+              {isOpen && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10 }}>{recordDate(r)}</div>
+
+                  <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8 }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text3)', fontSize: 11, marginBottom: 2 }}>AI 활용 내용</div>
+                    {r.content}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 14 }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text3)', fontSize: 11, marginBottom: 2 }}>활용 효과</div>
+                    {r.effect}
+                  </div>
 
               {!isFinalized ? (
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
@@ -412,6 +449,8 @@ export default function Eval() {
                   >
                     {saving[r.id] ? '삭제 중...' : '삭제'}
                   </button>
+                </div>
+              )}
                 </div>
               )}
             </div>
