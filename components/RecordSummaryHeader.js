@@ -19,10 +19,8 @@ export default function RecordSummaryHeader({
       </div>
       <div className="record-summary-task">{task}</div>
       <div className="record-summary-footer">
-        <div className="record-summary-footer-left">
-          <span className={`badge ${statusCls}`}>{statusLabel}</span>
-          {tool && <span className="tool-tag">{tool}</span>}
-        </div>
+        <span className={`badge ${statusCls}`}>{statusLabel}</span>
+        {tool && <span className="tool-tag">{tool}</span>}
         {displayScore && (
           <span className="record-summary-score">{'★'.repeat(score)}</span>
         )}
