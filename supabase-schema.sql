@@ -33,7 +33,6 @@ create table if not exists records (
   date        text,
   score       int default 0,
   feedback    text default '',
-  work_category text,
   work_area   text,
   automation_area text default '기타',
   likes       int default 0,
@@ -73,6 +72,29 @@ alter table records add column if not exists automation_area text default '기�
 alter table records alter column automation_area set default '기타';
 update records set automation_area = '기타'
 where automation_area is null or automation_area = '' or automation_area = '미분류';
+
+-- 기존 work_category 값을 업무분야로 이관
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'records' and column_name = 'work_category'
+  ) then
+    execute $sql$
+      update records
+      set work_area = case work_category
+        when '수입통관' then '수입'
+        when '수출통관' then '수출'
+        when '경영관리' then '경영지원'
+        else work_category
+      end
+      where (work_area is null or work_area = '')
+        and work_category is not null
+        and work_category <> ''
+    $sql$;
+  end if;
+end $$;
 
 -- 피드백 대화: 읽기/등록 가능
 create policy "record_comments_select" on record_comments for select using (true);

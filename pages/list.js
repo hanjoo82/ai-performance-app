@@ -9,17 +9,27 @@ import RecordSummaryHeader from '../components/RecordSummaryHeader'
 import RecordFeedbackThread from '../components/RecordFeedbackThread'
 import RecordAttachments from '../components/RecordAttachments'
 import { cleanupAttachmentsForRecord } from '../lib/attachments'
-import {
-  countByWorkCategory,
-  filterByWorkCategory,
-  WORK_CATEGORIES,
-  WORK_CATEGORY_FILTER_ALL,
-  WORK_CATEGORY_FILTER_UNSET,
-} from '../lib/workCategories'
 import Head from 'next/head'
 
 function recordDate(r) {
   return r.date || (r.created_at ? r.created_at.slice(0, 10) : '')
+}
+
+const WORK_AREAS = ['수입', '수출', '요건', '환급', 'FTA', '경영지원', '자문', '프로젝트']
+const AUTOMATION_AREAS = ['기타', '엑셀자동화', '문서(PPT,Word)자동화', 'PDF 파싱', '메일작성자동화', 'API연동', '앱개발', '영문문서작성', '파일명변경자동화']
+
+function resolveWorkArea(record) {
+  return record.work_area || ''
+}
+
+function resolveAutomationArea(record) {
+  return record.automation_area || '기타'
+}
+
+function classificationLabel(record) {
+  const workArea = resolveWorkArea(record)
+  const automationArea = resolveAutomationArea(record)
+  return workArea ? `${workArea} · ${automationArea}` : automationArea
 }
 
 const STATUS_STYLE = {
@@ -34,7 +44,8 @@ export default function List() {
   const router = useRouter()
   const [records, setRecords] = useState([])
   const [filter, setFilter] = useState('all')
-  const [workCategoryFilter, setWorkCategoryFilter] = useState(WORK_CATEGORY_FILTER_ALL)
+  const [workArea, setWorkArea] = useState('all')
+  const [automationArea, setAutomationArea] = useState('all')
   const [expanded, setExpanded] = useState(() => new Set())
   const [fetching, setFetching] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -150,8 +161,11 @@ export default function List() {
   if (loading || !user) return null
 
   const scoped = filter === 'mine' ? records.filter(r => r.email === email) : records
-  const categoryCounts = countByWorkCategory(scoped)
-  const shown = filterByWorkCategory(scoped, workCategoryFilter)
+  const shown = scoped.filter(r => {
+    const matchesWorkArea = workArea === 'all' || resolveWorkArea(r) === workArea
+    const matchesAutomationArea = automationArea === 'all' || resolveAutomationArea(r) === automationArea
+    return matchesWorkArea && matchesAutomationArea
+  })
 
   return (
     <>
@@ -170,32 +184,28 @@ export default function List() {
           ))}
         </div>
 
-        <div className="form-group" style={{ marginBottom: 16 }}>
-          <label htmlFor="work-category-filter">업무 구분</label>
-          <select
-            id="work-category-filter"
-            value={workCategoryFilter}
-            onChange={e => setWorkCategoryFilter(e.target.value)}
-          >
-            <option value={WORK_CATEGORY_FILTER_ALL}>
-              전체 ({categoryCounts[WORK_CATEGORY_FILTER_ALL]})
-            </option>
-            <option value={WORK_CATEGORY_FILTER_UNSET}>
-              기타 ({categoryCounts[WORK_CATEGORY_FILTER_UNSET]})
-            </option>
-            {WORK_CATEGORIES.map(c => (
-              <option key={c} value={c}>
-                {c} ({categoryCounts[c] || 0})
-              </option>
-            ))}
-          </select>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label>업무분야</label>
+            <select value={workArea} onChange={e => setWorkArea(e.target.value)}>
+              <option value="all">전체</option>
+              {WORK_AREAS.map(area => <option key={area} value={area}>{area}</option>)}
+            </select>
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label>자동화분야</label>
+            <select value={automationArea} onChange={e => setAutomationArea(e.target.value)}>
+              <option value="all">전체</option>
+              {AUTOMATION_AREAS.map(area => <option key={area} value={area}>{area}</option>)}
+            </select>
+          </div>
         </div>
 
         {fetching ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>불러오는 중...</div>
         ) : shown.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>
-            해당 업무 구분의 실적이 없습니다
+            해당 분류의 실적이 없습니다
           </div>
         ) : shown.map(r => {
           const u = r.users || {}
@@ -229,7 +239,7 @@ export default function List() {
                 statusCls={statusStyle.cls}
                 statusLabel={statusStyle.label}
                 tool={r.tool}
-                workCategory={r.work_category}
+                workCategory={classificationLabel(r)}
                 isOpen={isOpen}
               />
 
@@ -243,9 +253,7 @@ export default function List() {
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10 }}>
                     {recordDate(r)}
-                    {r.work_category && (
-                      <span className="category-tag" style={{ marginLeft: 8 }}>{r.work_category}</span>
-                    )}
+                    <span className="category-tag" style={{ marginLeft: 8 }}>{classificationLabel(r)}</span>
                   </div>
 
                   <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8 }}>

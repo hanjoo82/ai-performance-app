@@ -6,9 +6,7 @@ import Layout from '../components/Layout'
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal'
 import RecordSummaryHeader from '../components/RecordSummaryHeader'
 import RecordAttachments from '../components/RecordAttachments'
-import WorkCategorySelect from '../components/WorkCategorySelect'
 import { cleanupAttachmentsForRecord } from '../lib/attachments'
-import { isWorkCategory } from '../lib/workCategories'
 import { EVAL_STATUS_LABEL, filterDisplayComments, getEvalStatus, shouldShowFinalFeedback } from '../lib/evalStatus'
 import Head from 'next/head'
 
@@ -45,6 +43,12 @@ function resolveAutomationArea(record) {
   return record.automation_area || '기타'
 }
 
+function classificationLabel(record) {
+  const workArea = resolveWorkArea(record)
+  const automationArea = resolveAutomationArea(record)
+  return workArea ? `${workArea} · ${automationArea}` : automationArea
+}
+
 export default function Eval() {
   const { user, email, loading, isCeo } = useAuth()
   const router = useRouter()
@@ -57,7 +61,6 @@ export default function Eval() {
   const [saving, setSaving] = useState({})
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [expanded, setExpanded] = useState(() => new Set())
-  const [workCategories, setWorkCategories] = useState({})
   const [workAreas, setWorkAreas] = useState({})
   const [automationAreas, setAutomationAreas] = useState({})
 
@@ -109,41 +112,16 @@ export default function Eval() {
     })
   }, [isCeo])
 
-  function selectedWorkCategory(rec) {
-    return workCategories[rec.id] ?? rec.work_category ?? ''
-  }
-
-  function setWorkCategory(rec, value) {
-    setWorkCategories(p => ({ ...p, [rec.id]: value }))
-  }
-
-  async function changeWorkCategory(rec, value, isFinalized) {
-    setWorkCategory(rec, value)
-    if (!isFinalized || !isWorkCategory(value) || value === (rec.work_category || '')) return
-    setSaving(p => ({ ...p, [rec.id]: true }))
-    try {
-      await updateRecord(rec.id, { work_category: value })
-      setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, work_category: value } : r))
-    } catch (err) {
-      alert(`업무 구분 저장 실패\n${err?.message || err}`)
-      setWorkCategory(rec, rec.work_category || '')
-    } finally {
-      setSaving(p => ({ ...p, [rec.id]: false }))
-    }
-  }
-
   async function finalizeEval(rec) {
     const score = scores[rec.id]
     if (!score) { alert('점수를 선택해주세요'); return }
-    const category = selectedWorkCategory(rec)
-    if (!isWorkCategory(category)) { alert('업무 구분을 선택해주세요'); return }
     const message = (feedbacks[rec.id] || '').trim()
     const workArea = workAreas[rec.id] || resolveWorkArea(rec)
     const automationArea = automationAreas[rec.id] || resolveAutomationArea(rec)
     if (!workArea) { alert('업무분야를 선택해주세요'); return }
     setSaving(p => ({ ...p, [rec.id]: true }))
     try {
-      await updateRecord(rec.id, { score, feedback: message, work_category: category, work_area: workArea, automation_area: automationArea })
+      await updateRecord(rec.id, { score, feedback: message, work_area: workArea, automation_area: automationArea })
       if (message) {
         const created = await addRecordComment({
           record_id: rec.id,
@@ -158,7 +136,7 @@ export default function Eval() {
         }))
         setFeedbacks(p => ({ ...p, [rec.id]: '' }))
       }
-      setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, score, feedback: message, work_category: category, work_area: workArea, automation_area: automationArea } : r))
+      setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, score, feedback: message, work_area: workArea, automation_area: automationArea } : r))
       setTab('finalized')
     } catch (err) {
       alert(`최종 평가 저장 실패\n${err?.message || err}`)
@@ -168,7 +146,6 @@ export default function Eval() {
   }
 
   async function saveClassification(rec) {
-    const category = selectedWorkCategory(rec)
     const workArea = workAreas[rec.id] || resolveWorkArea(rec)
     const automationArea = automationAreas[rec.id] || resolveAutomationArea(rec)
     setSaving(p => ({ ...p, [rec.id]: true }))
@@ -177,7 +154,6 @@ export default function Eval() {
         work_area: workArea || null,
         automation_area: automationArea,
       }
-      if (isWorkCategory(category)) updates.work_category = category
       await updateRecord(rec.id, updates)
       setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, ...updates } : r))
       alert('분류를 저장했습니다.')
@@ -191,7 +167,6 @@ export default function Eval() {
   async function requestRevision(rec) {
     const message = (feedbacks[rec.id] || '').trim()
     if (!message) { alert('보완 요청 내용을 입력해주세요'); return }
-    const category = selectedWorkCategory(rec)
     setSaving(p => ({ ...p, [rec.id]: true }))
     try {
       const created = await addRecordComment({
@@ -202,7 +177,6 @@ export default function Eval() {
         message,
       })
       const updates = { feedback: message, score: 0 }
-      if (isWorkCategory(category)) updates.work_category = category
       await updateRecord(rec.id, updates)
       setCommentsByRecord(prev => ({
         ...prev,
@@ -212,7 +186,6 @@ export default function Eval() {
         ...r,
         feedback: message,
         score: 0,
-        work_category: isWorkCategory(category) ? category : r.work_category,
       } : r))
       setFeedbacks(p => ({ ...p, [rec.id]: '' }))
     } catch (err) {
@@ -371,7 +344,7 @@ export default function Eval() {
                 statusCls={statusStyle.cls}
                 statusLabel={statusStyle.label}
                 tool={r.tool}
-                workCategory={r.work_category}
+                workCategory={classificationLabel(r)}
                 score={scores[r.id] ?? r.score}
                 showScore={isFinalized}
                 isOpen={isOpen}
@@ -416,15 +389,6 @@ export default function Eval() {
                       ))}
                     </div>
                   )}
-
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', marginBottom: 8 }}>업무 구분</div>
-                  <WorkCategorySelect
-                    value={selectedWorkCategory(r)}
-                    onChange={value => changeWorkCategory(r, value, false)}
-                    required
-                    disabled={saving[r.id]}
-                    style={{ width: '100%', marginBottom: 14 }}
-                  />
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
@@ -521,14 +485,6 @@ export default function Eval() {
 
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginBottom: 12 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', marginBottom: 10 }}>평가 수정</div>
-
-                    <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>업무 구분</div>
-                    <WorkCategorySelect
-                      value={selectedWorkCategory(r)}
-                      onChange={value => changeWorkCategory(r, value, true)}
-                      disabled={saving[r.id]}
-                      style={{ width: '100%', marginBottom: 14 }}
-                    />
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                       <div className="form-group" style={{ marginBottom: 0 }}>
