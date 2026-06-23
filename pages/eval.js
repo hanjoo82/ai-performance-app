@@ -40,7 +40,7 @@ function resolveWorkArea(record) {
 }
 
 function resolveAutomationArea(record) {
-  return record.automation_area || '기타'
+  return AUTOMATION_AREAS.includes(record.automation_area) ? record.automation_area : '기타'
 }
 
 function classificationLabel(record) {
