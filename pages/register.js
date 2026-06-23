@@ -92,15 +92,19 @@ export default function Register() {
         helper_name: helperName.trim() || null,
         date,
       }
+      let recordId = editingId
       if (mode === 'edit' && editingId) {
         await updateRecord(editingId, payload)
-        if (pendingFiles.length > 0) {
-          await uploadPendingFiles(editingId, email, pendingFiles)
-        }
       } else {
         const created = await addRecord(payload)
-        if (pendingFiles.length > 0) {
-          await uploadPendingFiles(created.id, email, pendingFiles)
+        recordId = created.id
+      }
+      if (pendingFiles.length > 0 && recordId) {
+        try {
+          await uploadPendingFiles(recordId, email, pendingFiles)
+        } catch (uploadErr) {
+          console.warn('attachment upload failed:', uploadErr)
+          alert(`실적은 저장되었으나 첨부파일 업로드에 실패했습니다.\n${uploadErr?.message || uploadErr}`)
         }
       }
       setSuccess(true)

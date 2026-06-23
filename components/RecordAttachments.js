@@ -3,6 +3,7 @@ import {
   attachmentDownloadUrl,
   deleteAttachment,
   formatFileSize,
+  isAttachmentApiUnavailable,
   listAttachments,
 } from '../lib/attachments'
 
@@ -17,6 +18,7 @@ export default function RecordAttachments({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [deletingId, setDeletingId] = useState(null)
+  const [unavailable, setUnavailable] = useState(false)
 
   useEffect(() => {
     if (!canView || !recordId || !email) {
@@ -28,6 +30,7 @@ export default function RecordAttachments({
     let cancelled = false
     setLoading(true)
     setError('')
+    setUnavailable(false)
 
     listAttachments(recordId, email)
       .then((items) => {
@@ -37,6 +40,11 @@ export default function RecordAttachments({
       })
       .catch((err) => {
         if (cancelled) return
+        if (isAttachmentApiUnavailable(err.message)) {
+          setUnavailable(true)
+          onCountChange?.(0)
+          return
+        }
         setError(err.message || '첨부파일을 불러오지 못했습니다.')
       })
       .finally(() => {
@@ -64,7 +72,7 @@ export default function RecordAttachments({
     }
   }
 
-  if (!canView) return null
+  if (!canView || unavailable) return null
 
   return (
     <div style={{ marginTop: 10, marginBottom: 10 }}>
