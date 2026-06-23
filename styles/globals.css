@@ -159,13 +159,29 @@ textarea { resize: vertical; min-height: 80px; }
   color: var(--text3);
   flex-shrink: 0;
 }
+.record-summary-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
 .record-summary-task {
+  flex: 1;
+  min-width: 0;
   font-weight: 700;
   font-size: 15px;
   line-height: 1.45;
-  margin-bottom: 10px;
   word-break: keep-all;
   overflow-wrap: anywhere;
+}
+.record-summary-tool {
+  flex-shrink: 0;
+  margin-top: 1px;
+  max-width: 42%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .record-summary-footer {
   display: flex;

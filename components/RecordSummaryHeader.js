@@ -18,11 +18,13 @@ export default function RecordSummaryHeader({
         <span className="record-summary-meta">{userName} · {userTeam}</span>
         <i className={`ti ${isOpen ? 'ti-chevron-up' : 'ti-chevron-down'} record-summary-chevron`} />
       </div>
-      <div className="record-summary-task">{task}</div>
+      <div className="record-summary-main">
+        <div className="record-summary-task">{task}</div>
+        {tool && <span className="tool-tag record-summary-tool">{tool}</span>}
+      </div>
       <div className="record-summary-footer">
         <span className={`badge ${statusCls}`}>{statusLabel}</span>
         {workCategory && <span className="category-tag">{workCategory}</span>}
-        {tool && <span className="tool-tag">{tool}</span>}
         {displayScore && (
           <span className="record-summary-score">{'★'.repeat(score)}</span>
         )}
