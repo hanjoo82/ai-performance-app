@@ -102,18 +102,16 @@ export default function Eval() {
     setWorkCategories(p => ({ ...p, [rec.id]: value }))
   }
 
-  async function saveWorkCategory(rec) {
-    const category = selectedWorkCategory(rec)
-    if (!category || !isWorkCategory(category)) {
-      alert('업무 구분을 선택해주세요')
-      return
-    }
+  async function changeWorkCategory(rec, value, isFinalized) {
+    setWorkCategory(rec, value)
+    if (!isFinalized || !isWorkCategory(value) || value === (rec.work_category || '')) return
     setSaving(p => ({ ...p, [rec.id]: true }))
     try {
-      await updateRecord(rec.id, { work_category: category })
-      setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, work_category: category } : r))
+      await updateRecord(rec.id, { work_category: value })
+      setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, work_category: value } : r))
     } catch (err) {
       alert(`업무 구분 저장 실패\n${err?.message || err}`)
+      setWorkCategory(rec, rec.work_category || '')
     } finally {
       setSaving(p => ({ ...p, [rec.id]: false }))
     }
@@ -381,26 +379,13 @@ export default function Eval() {
                   )}
 
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', marginBottom: 8 }}>업무 구분</div>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                    <WorkCategorySelect
-                      value={selectedWorkCategory(r)}
-                      onChange={value => setWorkCategory(r, value)}
-                      required
-                      disabled={saving[r.id]}
-                      style={{ flex: 1 }}
-                    />
-                    {!isFinalized && (
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-                        onClick={() => saveWorkCategory(r)}
-                        disabled={saving[r.id] || !isWorkCategory(selectedWorkCategory(r))}
-                      >
-                        저장
-                      </button>
-                    )}
-                  </div>
+                  <WorkCategorySelect
+                    value={selectedWorkCategory(r)}
+                    onChange={value => changeWorkCategory(r, value, false)}
+                    required
+                    disabled={saving[r.id]}
+                    style={{ width: '100%', marginBottom: 14 }}
+                  />
 
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', marginBottom: 10 }}>점수 평가</div>
                   <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
@@ -475,23 +460,12 @@ export default function Eval() {
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', marginBottom: 10 }}>평가 수정</div>
 
                     <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>업무 구분</div>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                      <WorkCategorySelect
-                        value={selectedWorkCategory(r)}
-                        onChange={value => setWorkCategory(r, value)}
-                        disabled={saving[r.id]}
-                        style={{ flex: 1 }}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-                        onClick={() => saveWorkCategory(r)}
-                        disabled={saving[r.id] || selectedWorkCategory(r) === (r.work_category || '')}
-                      >
-                        저장
-                      </button>
-                    </div>
+                    <WorkCategorySelect
+                      value={selectedWorkCategory(r)}
+                      onChange={value => changeWorkCategory(r, value, true)}
+                      disabled={saving[r.id]}
+                      style={{ width: '100%', marginBottom: 14 }}
+                    />
 
                     <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>점수 변경</div>
                     <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
