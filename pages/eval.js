@@ -34,6 +34,17 @@ function recordDate(r) {
   return r.date || (r.created_at ? r.created_at.slice(0, 10) : '')
 }
 
+const WORK_AREAS = ['수입', '수출', '요건', '환급', 'FTA', '경영지원', '자문', '프로젝트']
+const AUTOMATION_AREAS = ['기타', '엑셀자동화', '문서(PPT,Word)자동화', 'PDF 파싱', '메일작성자동화', 'API연동', '앱개발', '영문문서작성', '파일명변경자동화']
+
+function resolveWorkArea(record) {
+  return record.work_area || ''
+}
+
+function resolveAutomationArea(record) {
+  return record.automation_area || '기타'
+}
+
 export default function Eval() {
   const { user, email, loading, isCeo } = useAuth()
   const router = useRouter()
@@ -47,6 +58,8 @@ export default function Eval() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [expanded, setExpanded] = useState(() => new Set())
   const [workCategories, setWorkCategories] = useState({})
+  const [workAreas, setWorkAreas] = useState({})
+  const [automationAreas, setAutomationAreas] = useState({})
 
   useEffect(() => {
     if (!loading) {
@@ -79,6 +92,8 @@ export default function Eval() {
     if (!isCeo) return
     getRecords().then(async (recs) => {
       setRecords(recs)
+      setWorkAreas(recs.reduce((acc, r) => ({ ...acc, [r.id]: resolveWorkArea(r) }), {}))
+      setAutomationAreas(recs.reduce((acc, r) => ({ ...acc, [r.id]: resolveAutomationArea(r) }), {}))
       try {
         const ids = recs.map(r => r.id)
         const comments = await getCommentsByRecordIds(ids)
@@ -123,9 +138,12 @@ export default function Eval() {
     const category = selectedWorkCategory(rec)
     if (!isWorkCategory(category)) { alert('업무 구분을 선택해주세요'); return }
     const message = (feedbacks[rec.id] || '').trim()
+    const workArea = workAreas[rec.id] || resolveWorkArea(rec)
+    const automationArea = automationAreas[rec.id] || resolveAutomationArea(rec)
+    if (!workArea) { alert('업무분야를 선택해주세요'); return }
     setSaving(p => ({ ...p, [rec.id]: true }))
     try {
-      await updateRecord(rec.id, { score, feedback: message, work_category: category })
+      await updateRecord(rec.id, { score, feedback: message, work_category: category, work_area: workArea, automation_area: automationArea })
       if (message) {
         const created = await addRecordComment({
           record_id: rec.id,
@@ -140,10 +158,31 @@ export default function Eval() {
         }))
         setFeedbacks(p => ({ ...p, [rec.id]: '' }))
       }
-      setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, score, feedback: message, work_category: category } : r))
+      setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, score, feedback: message, work_category: category, work_area: workArea, automation_area: automationArea } : r))
       setTab('finalized')
     } catch (err) {
       alert(`최종 평가 저장 실패\n${err?.message || err}`)
+    } finally {
+      setSaving(p => ({ ...p, [rec.id]: false }))
+    }
+  }
+
+  async function saveClassification(rec) {
+    const category = selectedWorkCategory(rec)
+    const workArea = workAreas[rec.id] || resolveWorkArea(rec)
+    const automationArea = automationAreas[rec.id] || resolveAutomationArea(rec)
+    setSaving(p => ({ ...p, [rec.id]: true }))
+    try {
+      const updates = {
+        work_area: workArea || null,
+        automation_area: automationArea,
+      }
+      if (isWorkCategory(category)) updates.work_category = category
+      await updateRecord(rec.id, updates)
+      setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, ...updates } : r))
+      alert('분류를 저장했습니다.')
+    } catch (err) {
+      alert(`분류 저장 실패\n${err?.message || err}`)
     } finally {
       setSaving(p => ({ ...p, [rec.id]: false }))
     }
@@ -184,7 +223,7 @@ export default function Eval() {
   }
 
   async function updateFinalizedScore(rec) {
-    const score = scores[r.id] ?? rec.score
+    const score = scores[rec.id] ?? rec.score
     if (!score) { alert('점수를 선택해주세요'); return }
     setSaving(p => ({ ...p, [rec.id]: true }))
     try {
@@ -198,7 +237,7 @@ export default function Eval() {
   }
 
   async function updateFinalFeedback(rec) {
-    const message = (feedbacks[r.id] ?? rec.feedback ?? '').trim()
+    const message = (feedbacks[rec.id] ?? rec.feedback ?? '').trim()
     setSaving(p => ({ ...p, [rec.id]: true }))
     try {
       await updateRecord(rec.id, { feedback: message })
@@ -212,7 +251,7 @@ export default function Eval() {
   }
 
   async function addFinalizedComment(rec) {
-    const message = (finalComments[r.id] || '').trim()
+    const message = (finalComments[rec.id] || '').trim()
     if (!message) { alert('코멘트를 입력해주세요'); return }
     setSaving(p => ({ ...p, [rec.id]: true }))
     try {
@@ -387,6 +426,30 @@ export default function Eval() {
                     style={{ width: '100%', marginBottom: 14 }}
                   />
 
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>업무분야</label>
+                      <select
+                        value={workAreas[r.id] || resolveWorkArea(r)}
+                        onChange={e => setWorkAreas(p => ({ ...p, [r.id]: e.target.value }))}
+                        disabled={saving[r.id]}
+                      >
+                        <option value="">선택해주세요</option>
+                        {WORK_AREAS.map(area => <option key={area} value={area}>{area}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>자동화분야</label>
+                      <select
+                        value={automationAreas[r.id] || resolveAutomationArea(r)}
+                        onChange={e => setAutomationAreas(p => ({ ...p, [r.id]: e.target.value }))}
+                        disabled={saving[r.id]}
+                      >
+                        {AUTOMATION_AREAS.map(area => <option key={area} value={area}>{area}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', marginBottom: 10 }}>점수 평가</div>
                   <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
                     {[1, 2, 3, 4, 5].map(n => (
@@ -466,6 +529,38 @@ export default function Eval() {
                       disabled={saving[r.id]}
                       style={{ width: '100%', marginBottom: 14 }}
                     />
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label>업무분야</label>
+                        <select
+                          value={workAreas[r.id] || resolveWorkArea(r)}
+                          onChange={e => setWorkAreas(p => ({ ...p, [r.id]: e.target.value }))}
+                          disabled={saving[r.id]}
+                        >
+                          <option value="">선택해주세요</option>
+                          {WORK_AREAS.map(area => <option key={area} value={area}>{area}</option>)}
+                        </select>
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label>자동화분야</label>
+                        <select
+                          value={automationAreas[r.id] || resolveAutomationArea(r)}
+                          onChange={e => setAutomationAreas(p => ({ ...p, [r.id]: e.target.value }))}
+                          disabled={saving[r.id]}
+                        >
+                          {AUTOMATION_AREAS.map(area => <option key={area} value={area}>{area}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <button
+                      className="btn btn-ghost btn-block"
+                      style={{ marginBottom: 14 }}
+                      onClick={() => saveClassification(r)}
+                      disabled={saving[r.id]}
+                    >
+                      {saving[r.id] ? '저장 중...' : '분류 저장'}
+                    </button>
 
                     <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>점수 변경</div>
                     <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>

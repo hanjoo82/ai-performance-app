@@ -34,6 +34,8 @@ create table if not exists records (
   score       int default 0,
   feedback    text default '',
   work_category text,
+  work_area   text,
+  automation_area text default '기타',
   likes       int default 0,
   liked_by    text[] default '{}',
   created_at  timestamptz default now()
@@ -64,6 +66,13 @@ create policy "records_select" on records for select using (true);
 create policy "records_insert" on records for insert with check (true);
 create policy "records_update" on records for update using (true);
 create policy "records_delete" on records for delete using (true);
+
+-- 기존 DB에 평가 분류 컬럼 추가 및 기본값 채우기
+alter table records add column if not exists work_area text;
+alter table records add column if not exists automation_area text default '기타';
+alter table records alter column automation_area set default '기타';
+update records set automation_area = '기타'
+where automation_area is null or automation_area = '' or automation_area = '미분류';
 
 -- 피드백 대화: 읽기/등록 가능
 create policy "record_comments_select" on record_comments for select using (true);
