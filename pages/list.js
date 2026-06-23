@@ -181,7 +181,7 @@ export default function List() {
               전체 ({categoryCounts[WORK_CATEGORY_FILTER_ALL]})
             </option>
             <option value={WORK_CATEGORY_FILTER_UNSET}>
-              미분류 ({categoryCounts[WORK_CATEGORY_FILTER_UNSET]})
+              기타 ({categoryCounts[WORK_CATEGORY_FILTER_UNSET]})
             </option>
             {WORK_CATEGORIES.map(c => (
               <option key={c} value={c}>
