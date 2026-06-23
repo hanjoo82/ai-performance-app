@@ -7,6 +7,7 @@ export default function RecordSummaryHeader({
   tool,
   score,
   showScore = false,
+  workCategory,
   isOpen,
 }) {
   const displayScore = showScore && score > 0
@@ -20,6 +21,7 @@ export default function RecordSummaryHeader({
       <div className="record-summary-task">{task}</div>
       <div className="record-summary-footer">
         <span className={`badge ${statusCls}`}>{statusLabel}</span>
+        {workCategory && <span className="category-tag">{workCategory}</span>}
         {tool && <span className="tool-tag">{tool}</span>}
         {displayScore && (
           <span className="record-summary-score">{'★'.repeat(score)}</span>

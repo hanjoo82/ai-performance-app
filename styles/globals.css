@@ -180,6 +180,16 @@ textarea { resize: vertical; min-height: 80px; }
   flex-shrink: 0;
 }
 
+.category-tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #f3eef8;
+  color: #6b4c9a;
+}
+
 /* 툴 태그 */
 .tool-tag {
   display: inline-block;

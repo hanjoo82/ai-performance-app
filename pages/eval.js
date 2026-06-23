@@ -6,7 +6,9 @@ import Layout from '../components/Layout'
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal'
 import RecordSummaryHeader from '../components/RecordSummaryHeader'
 import RecordAttachments from '../components/RecordAttachments'
+import WorkCategorySelect from '../components/WorkCategorySelect'
 import { cleanupAttachmentsForRecord } from '../lib/attachments'
+import { isWorkCategory } from '../lib/workCategories'
 import { EVAL_STATUS_LABEL, filterDisplayComments, getEvalStatus, shouldShowFinalFeedback } from '../lib/evalStatus'
 import Head from 'next/head'
 
@@ -44,6 +46,7 @@ export default function Eval() {
   const [saving, setSaving] = useState({})
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [expanded, setExpanded] = useState(() => new Set())
+  const [workCategories, setWorkCategories] = useState({})
 
   useEffect(() => {
     if (!loading) {
@@ -91,13 +94,40 @@ export default function Eval() {
     })
   }, [isCeo])
 
+  function selectedWorkCategory(rec) {
+    return workCategories[rec.id] ?? rec.work_category ?? ''
+  }
+
+  function setWorkCategory(rec, value) {
+    setWorkCategories(p => ({ ...p, [rec.id]: value }))
+  }
+
+  async function saveWorkCategory(rec) {
+    const category = selectedWorkCategory(rec)
+    if (!category || !isWorkCategory(category)) {
+      alert('업무 구분을 선택해주세요')
+      return
+    }
+    setSaving(p => ({ ...p, [rec.id]: true }))
+    try {
+      await updateRecord(rec.id, { work_category: category })
+      setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, work_category: category } : r))
+    } catch (err) {
+      alert(`업무 구분 저장 실패\n${err?.message || err}`)
+    } finally {
+      setSaving(p => ({ ...p, [rec.id]: false }))
+    }
+  }
+
   async function finalizeEval(rec) {
     const score = scores[rec.id]
     if (!score) { alert('점수를 선택해주세요'); return }
+    const category = selectedWorkCategory(rec)
+    if (!isWorkCategory(category)) { alert('업무 구분을 선택해주세요'); return }
     const message = (feedbacks[rec.id] || '').trim()
     setSaving(p => ({ ...p, [rec.id]: true }))
     try {
-      await updateRecord(rec.id, { score, feedback: message })
+      await updateRecord(rec.id, { score, feedback: message, work_category: category })
       if (message) {
         const created = await addRecordComment({
           record_id: rec.id,
@@ -112,7 +142,7 @@ export default function Eval() {
         }))
         setFeedbacks(p => ({ ...p, [rec.id]: '' }))
       }
-      setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, score, feedback: message } : r))
+      setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, score, feedback: message, work_category: category } : r))
       setTab('finalized')
     } catch (err) {
       alert(`최종 평가 저장 실패\n${err?.message || err}`)
@@ -124,6 +154,7 @@ export default function Eval() {
   async function requestRevision(rec) {
     const message = (feedbacks[rec.id] || '').trim()
     if (!message) { alert('보완 요청 내용을 입력해주세요'); return }
+    const category = selectedWorkCategory(rec)
     setSaving(p => ({ ...p, [rec.id]: true }))
     try {
       const created = await addRecordComment({
@@ -133,12 +164,19 @@ export default function Eval() {
         author_role: 'evaluator',
         message,
       })
-      await updateRecord(rec.id, { feedback: message, score: 0 })
+      const updates = { feedback: message, score: 0 }
+      if (isWorkCategory(category)) updates.work_category = category
+      await updateRecord(rec.id, updates)
       setCommentsByRecord(prev => ({
         ...prev,
         [rec.id]: [...(prev[rec.id] || []), created]
       }))
-      setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, feedback: message, score: 0 } : r))
+      setRecords(prev => prev.map(r => r.id === rec.id ? {
+        ...r,
+        feedback: message,
+        score: 0,
+        work_category: isWorkCategory(category) ? category : r.work_category,
+      } : r))
       setFeedbacks(p => ({ ...p, [rec.id]: '' }))
     } catch (err) {
       alert(`보완 요청 저장 실패\n${err?.message || err}`)
@@ -296,6 +334,7 @@ export default function Eval() {
                 statusCls={statusStyle.cls}
                 statusLabel={statusStyle.label}
                 tool={r.tool}
+                workCategory={r.work_category}
                 score={scores[r.id] ?? r.score}
                 showScore={isFinalized}
                 isOpen={isOpen}
@@ -340,6 +379,28 @@ export default function Eval() {
                       ))}
                     </div>
                   )}
+
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', marginBottom: 8 }}>업무 구분</div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                    <WorkCategorySelect
+                      value={selectedWorkCategory(r)}
+                      onChange={value => setWorkCategory(r, value)}
+                      required
+                      disabled={saving[r.id]}
+                      style={{ flex: 1 }}
+                    />
+                    {!isFinalized && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                        onClick={() => saveWorkCategory(r)}
+                        disabled={saving[r.id] || !isWorkCategory(selectedWorkCategory(r))}
+                      >
+                        저장
+                      </button>
+                    )}
+                  </div>
 
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', marginBottom: 10 }}>점수 평가</div>
                   <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
@@ -412,6 +473,25 @@ export default function Eval() {
 
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginBottom: 12 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', marginBottom: 10 }}>평가 수정</div>
+
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>업무 구분</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                      <WorkCategorySelect
+                        value={selectedWorkCategory(r)}
+                        onChange={value => setWorkCategory(r, value)}
+                        disabled={saving[r.id]}
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                        onClick={() => saveWorkCategory(r)}
+                        disabled={saving[r.id] || selectedWorkCategory(r) === (r.work_category || '')}
+                      >
+                        저장
+                      </button>
+                    </div>
 
                     <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>점수 변경</div>
                     <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>

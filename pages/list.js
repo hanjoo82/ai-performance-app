@@ -9,27 +9,17 @@ import RecordSummaryHeader from '../components/RecordSummaryHeader'
 import RecordFeedbackThread from '../components/RecordFeedbackThread'
 import RecordAttachments from '../components/RecordAttachments'
 import { cleanupAttachmentsForRecord } from '../lib/attachments'
+import {
+  countByWorkCategory,
+  filterByWorkCategory,
+  WORK_CATEGORIES,
+  WORK_CATEGORY_FILTER_ALL,
+  WORK_CATEGORY_FILTER_UNSET,
+} from '../lib/workCategories'
 import Head from 'next/head'
-
-const PERIODS = [
-  { key: 'all', label: '전체' },
-  { key: 'month', label: '이번달' },
-  { key: '3m', label: '3개월' },
-  { key: '6m', label: '6개월' },
-  { key: '1y', label: '1년' },
-]
 
 function recordDate(r) {
   return r.date || (r.created_at ? r.created_at.slice(0, 10) : '')
-}
-
-function periodStart(key) {
-  const d = new Date()
-  if (key === 'month') return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)
-  if (key === '3m') { const x = new Date(d); x.setMonth(x.getMonth() - 3); return x.toISOString().slice(0, 10) }
-  if (key === '6m') { const x = new Date(d); x.setMonth(x.getMonth() - 6); return x.toISOString().slice(0, 10) }
-  if (key === '1y') { const x = new Date(d); x.setFullYear(x.getFullYear() - 1); return x.toISOString().slice(0, 10) }
-  return null
 }
 
 const STATUS_STYLE = {
@@ -44,7 +34,7 @@ export default function List() {
   const router = useRouter()
   const [records, setRecords] = useState([])
   const [filter, setFilter] = useState('all')
-  const [period, setPeriod] = useState('all')
+  const [workCategoryFilter, setWorkCategoryFilter] = useState(WORK_CATEGORY_FILTER_ALL)
   const [expanded, setExpanded] = useState(() => new Set())
   const [fetching, setFetching] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -159,9 +149,9 @@ export default function List() {
 
   if (loading || !user) return null
 
-  const start = periodStart(period)
   const scoped = filter === 'mine' ? records.filter(r => r.email === email) : records
-  const shown = start ? scoped.filter(r => recordDate(r) >= start) : scoped
+  const categoryCounts = countByWorkCategory(scoped)
+  const shown = filterByWorkCategory(scoped, workCategoryFilter)
 
   return (
     <>
@@ -180,33 +170,32 @@ export default function List() {
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-          {PERIODS.map(p => (
-            <button
-              key={p.key}
-              className="btn btn-ghost"
-              style={{
-                flex: '1 1 auto',
-                minWidth: 64,
-                padding: '6px 10px',
-                fontSize: 13,
-                fontWeight: period === p.key ? 700 : 400,
-                borderColor: period === p.key ? 'var(--accent)' : undefined,
-                color: period === p.key ? 'var(--accent)' : undefined,
-                background: period === p.key ? 'var(--accent-light)' : undefined,
-              }}
-              onClick={() => setPeriod(p.key)}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div className="form-group" style={{ marginBottom: 16 }}>
+          <label htmlFor="work-category-filter">업무 구분</label>
+          <select
+            id="work-category-filter"
+            value={workCategoryFilter}
+            onChange={e => setWorkCategoryFilter(e.target.value)}
+          >
+            <option value={WORK_CATEGORY_FILTER_ALL}>
+              전체 ({categoryCounts[WORK_CATEGORY_FILTER_ALL]})
+            </option>
+            <option value={WORK_CATEGORY_FILTER_UNSET}>
+              미분류 ({categoryCounts[WORK_CATEGORY_FILTER_UNSET]})
+            </option>
+            {WORK_CATEGORIES.map(c => (
+              <option key={c} value={c}>
+                {c} ({categoryCounts[c] || 0})
+              </option>
+            ))}
+          </select>
         </div>
 
         {fetching ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>불러오는 중...</div>
         ) : shown.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>
-            해당 기간의 실적이 없습니다
+            해당 업무 구분의 실적이 없습니다
           </div>
         ) : shown.map(r => {
           const u = r.users || {}
@@ -240,6 +229,7 @@ export default function List() {
                 statusCls={statusStyle.cls}
                 statusLabel={statusStyle.label}
                 tool={r.tool}
+                workCategory={r.work_category}
                 isOpen={isOpen}
               />
 
@@ -251,7 +241,12 @@ export default function List() {
 
               {isOpen && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10 }}>{recordDate(r)}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10 }}>
+                    {recordDate(r)}
+                    {r.work_category && (
+                      <span className="category-tag" style={{ marginLeft: 8 }}>{r.work_category}</span>
+                    )}
+                  </div>
 
                   <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8 }}>
                     <div style={{ fontWeight: 600, color: 'var(--text3)', fontSize: 11, marginBottom: 2 }}>활용 내용</div>

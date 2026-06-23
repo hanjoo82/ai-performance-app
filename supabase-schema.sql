@@ -33,6 +33,7 @@ create table if not exists records (
   date        text,
   score       int default 0,
   feedback    text default '',
+  work_category text,
   likes       int default 0,
   liked_by    text[] default '{}',
   created_at  timestamptz default now()
