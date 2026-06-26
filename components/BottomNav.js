@@ -5,6 +5,7 @@ import styles from './BottomNav.module.css'
 const navItems = [
   { href: '/', icon: 'ti-home', label: '홈' },
   { href: '/register', icon: 'ti-plus', label: '등록' },
+  { href: '/my-records', icon: 'ti-notebook', label: '내기록' },
   { href: '/list', icon: 'ti-list', label: '조회' },
   { href: '/ranking', icon: 'ti-trophy', label: '랭킹' },
 ]

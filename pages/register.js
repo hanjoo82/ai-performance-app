@@ -28,6 +28,8 @@ export default function Register() {
   const [pendingFiles, setPendingFiles] = useState([])
   const [existingAttachmentCount, setExistingAttachmentCount] = useState(0)
 
+  const f = (k, v) => setForm(p => ({ ...p, [k]: v }))
+
   useEffect(() => {
     if (!loading && !user) router.replace('/login')
   }, [loading, user])
@@ -108,7 +110,7 @@ export default function Register() {
         }
       }
       setSuccess(true)
-      setTimeout(() => router.push('/list'), 1200)
+      setTimeout(() => router.push(`/my-records?highlight=${recordId}`), 1200)
     } catch (err) {
       const detail = [err?.message, err?.details, err?.hint, err?.code].filter(Boolean).join(' | ')
       const msg = detail || JSON.stringify(err)
@@ -121,13 +123,12 @@ export default function Register() {
   }
 
   if (loading || !user) return null
-  const f = (k, v) => setForm(p => ({...p, [k]: v}))
 
   return (
     <>
       <Head><title>{mode === 'edit' ? '실적 수정' : '실적 등록'} · AI 성과 관리</title></Head>
       <Layout title={mode === 'edit' ? 'AI 활용 실적 수정' : 'AI 활용 실적 등록'}>
-        {success && <div className="alert alert-success"><i className="ti ti-check" /> {mode === 'edit' ? '수정' : '등록'} 완료! 목록으로 이동합니다</div>}
+        {success && <div className="alert alert-success"><i className="ti ti-check" /> {mode === 'edit' ? '수정' : '등록'} 완료! 내 기록으로 이동합니다</div>}
         {error && <div className="alert alert-danger"><i className="ti ti-alert-circle" /> {error}</div>}
 
         <div className="card">

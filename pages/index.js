@@ -167,9 +167,9 @@ export default function Home() {
         )}
 
         {!isCeo && pendingReplyCount > 0 && (
-          <div className="alert alert-info" style={{ cursor: 'pointer', marginBottom: 16, background: 'var(--gold-light)', color: 'var(--gold-text)' }} onClick={() => router.push('/list?filter=mine')}>
+          <div className="alert alert-info" style={{ cursor: 'pointer', marginBottom: 16, background: 'var(--gold-light)', color: 'var(--gold-text)' }} onClick={() => router.push('/my-records')}>
             <i className="ti ti-message-circle" />
-            보완 요청 답변 대기 <strong>{pendingReplyCount}건</strong> · 실적 조회에서 답변하기 →
+            보완 요청 답변 대기 <strong>{pendingReplyCount}건</strong> · 내 기록에서 답변하기 →
           </div>
         )}
 
@@ -180,6 +180,16 @@ export default function Home() {
             <div style={{fontWeight:600,fontSize:14}}>실적 등록</div>
             <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>AI 활용 내용 기록</div>
           </button>
+          <button className="card" style={{border:'1.5px solid var(--gold-light)',cursor:'pointer',textAlign:'left'}} onClick={() => router.push('/my-records')}>
+            <i className="ti ti-notebook" style={{fontSize:22,color:'var(--accent)',marginBottom:6,display:'block'}} />
+            <div style={{fontWeight:600,fontSize:14}}>내 기록</div>
+            <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>조회·수정·첨부 관리</div>
+          </button>
+          <button className="card" style={{cursor:'pointer',textAlign:'left'}} onClick={() => router.push('/list')}>
+            <i className="ti ti-list" style={{fontSize:22,color:'var(--text2)',marginBottom:6,display:'block'}} />
+            <div style={{fontWeight:600,fontSize:14}}>전체 실적</div>
+            <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>전사 실적 조회</div>
+          </button>
           <button className="card" style={{cursor:'pointer',textAlign:'left'}} onClick={() => router.push('/ranking')}>
             <i className="ti ti-trophy" style={{fontSize:22,color:'#f0c040',marginBottom:6,display:'block'}} />
             <div style={{fontWeight:600,fontSize:14}}>랭킹 보드</div>
@@ -189,7 +199,18 @@ export default function Home() {
 
         {/* 최근 나의 실적 */}
         <div className="card">
-          <div style={{fontWeight:600,fontSize:13,color:'var(--text2)',marginBottom:12}}>최근 나의 실적</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text2)' }}>최근 나의 실적</div>
+            {myRecs.length > 0 && (
+              <button
+                className="btn btn-ghost"
+                style={{ padding: '4px 10px', fontSize: 12 }}
+                onClick={() => router.push('/my-records')}
+              >
+                전체 보기 →
+              </button>
+            )}
+          </div>
           {myRecs.length === 0 ? (
             <div style={{textAlign:'center',padding:'20px 0',color:'var(--text3)',fontSize:13}}>
               아직 등록된 실적이 없어요<br />
@@ -199,17 +220,29 @@ export default function Home() {
             const comments = commentsByRecord[r.id] || []
             const displayComments = filterDisplayComments(r, comments)
             const showFinal = shouldShowFinalFeedback(r, comments)
+            const canModify = (r.score || 0) === 0
             return (
             <div key={r.id} style={{padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
                 <div style={{fontWeight:600,fontSize:14,flex:1}}>{r.task}</div>
                 <span className="tool-tag">{r.tool}</span>
               </div>
-              <div style={{marginTop:4,display:'flex',alignItems:'center',gap:8}}>
+              <div style={{marginTop:4,display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                <div>
                 {r.score > 0
                   ? <span style={{color:'#f0c040',fontSize:13}}>{'★'.repeat(r.score)}</span>
                   : <span className="badge badge-gray">평가 대기</span>
                 }
+                </div>
+                {canModify && (
+                  <button
+                    className="btn btn-ghost"
+                    style={{ padding: '2px 8px', fontSize: 11 }}
+                    onClick={() => router.push(`/register?edit=${r.id}`)}
+                  >
+                    수정
+                  </button>
+                )}
               </div>
 
               {showFinal && (
