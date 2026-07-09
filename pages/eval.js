@@ -339,6 +339,7 @@ export default function Eval() {
             >
               <RecordSummaryHeader
                 userName={u.name || r.user_name}
+                userDept={r.user_dept || u.dept}
                 userTeam={u.team || r.user_team}
                 task={r.task}
                 statusCls={statusStyle.cls}

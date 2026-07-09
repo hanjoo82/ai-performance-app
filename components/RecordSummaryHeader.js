@@ -1,5 +1,6 @@
 export default function RecordSummaryHeader({
   userName,
+  userDept,
   userTeam,
   task,
   statusCls,
@@ -11,13 +12,14 @@ export default function RecordSummaryHeader({
   isOpen,
 }) {
   const displayScore = showScore && score > 0
+  const metaParts = [userName, userDept, userTeam].filter(Boolean)
 
   return (
     <div className="record-summary">
       <div className="record-summary-layout">
         <div className="record-summary-content">
           <div className="record-summary-top">
-            <span className="record-summary-meta">{userName} · {userTeam}</span>
+            <span className="record-summary-meta">{metaParts.join(' · ')}</span>
           </div>
           <div className="record-summary-task">{task}</div>
           <div className="record-summary-footer">

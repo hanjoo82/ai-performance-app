@@ -177,6 +177,7 @@ export default function MyRecords() {
             >
               <RecordSummaryHeader
                 userName={r.user_name}
+                userDept={r.user_dept}
                 userTeam={r.user_team}
                 task={r.task}
                 statusCls={statusStyle.cls}

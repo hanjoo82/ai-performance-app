@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../lib/useAuth'
 import { addRecordComment, deleteRecord, getCommentsByRecordIds, getRecords, updateRecord } from '../lib/db'
@@ -15,6 +15,7 @@ function recordDate(r) {
   return r.date || (r.created_at ? r.created_at.slice(0, 10) : '')
 }
 
+const DEPTS = ['CCB', 'COB', 'CRB', 'CMS']
 const WORK_AREAS = ['수입', '수출', '요건', '환급', 'FTA', '경영지원', '자문', '프로젝트']
 const AUTOMATION_AREAS = ['기타', '엑셀자동화', '문서(PPT,Word)자동화', 'PDF 파싱', '메일작성자동화', 'API연동', '앱개발', '영문문서작성', '파일명변경자동화']
 
@@ -32,6 +33,19 @@ function classificationLabel(record) {
   return workArea ? `${workArea} · ${automationArea}` : automationArea
 }
 
+/** 등록 시점 스냅샷 우선, 없으면 현재 사용자 프로필 */
+function resolveRecordDept(record) {
+  return (record.user_dept || record.users?.dept || '').trim()
+}
+
+function resolveRecordTeam(record) {
+  return (record.user_team || record.users?.team || '').trim()
+}
+
+function resolveRecordName(record) {
+  return (record.user_name || record.users?.name || '').trim()
+}
+
 const STATUS_STYLE = {
   submitted: { cls: 'badge-gray', label: '평가 대기' },
   revision_requested: { cls: 'badge-warn', label: '보완 요청(평가 보류)' },
@@ -44,6 +58,11 @@ export default function List() {
   const router = useRouter()
   const [records, setRecords] = useState([])
   const [filter, setFilter] = useState('all')
+  const [dept, setDept] = useState('all')
+  const [team, setTeam] = useState('all')
+  const [selectedName, setSelectedName] = useState('')
+  const [nameQuery, setNameQuery] = useState('')
+  const [nameOpen, setNameOpen] = useState(false)
   const [workArea, setWorkArea] = useState('all')
   const [automationArea, setAutomationArea] = useState('all')
   const [expanded, setExpanded] = useState(() => new Set())
@@ -53,6 +72,7 @@ export default function List() {
   const [commentsByRecord, setCommentsByRecord] = useState({})
   const [replyDrafts, setReplyDrafts] = useState({})
   const [replySaving, setReplySaving] = useState({})
+  const nameSearchRef = useRef(null)
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login')
@@ -158,14 +178,98 @@ export default function List() {
     }
   }
 
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (nameSearchRef.current && !nameSearchRef.current.contains(e.target)) {
+        setNameOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const scoped = useMemo(
+    () => (filter === 'mine' ? records.filter(r => r.email === email) : records),
+    [records, filter, email]
+  )
+
+  const teamOptions = useMemo(() => {
+    const set = new Set()
+    scoped.forEach(r => {
+      if (dept !== 'all' && resolveRecordDept(r) !== dept) return
+      const t = resolveRecordTeam(r)
+      if (t) set.add(t)
+    })
+    return [...set].sort((a, b) => a.localeCompare(b, 'ko'))
+  }, [scoped, dept])
+
+  const nameOptions = useMemo(() => {
+    const set = new Set()
+    scoped.forEach(r => {
+      if (dept !== 'all' && resolveRecordDept(r) !== dept) return
+      if (team !== 'all' && resolveRecordTeam(r) !== team) return
+      const n = resolveRecordName(r)
+      if (n) set.add(n)
+    })
+    return [...set].sort((a, b) => a.localeCompare(b, 'ko'))
+  }, [scoped, dept, team])
+
+  const filteredNameOptions = useMemo(() => {
+    const q = nameQuery.trim().toLowerCase()
+    if (!q) return nameOptions
+    return nameOptions.filter(n => n.toLowerCase().includes(q))
+  }, [nameOptions, nameQuery])
+
+  // 사업부 변경 시 팀이 목록에 없으면 초기화
+  useEffect(() => {
+    if (team !== 'all' && !teamOptions.includes(team)) setTeam('all')
+  }, [team, teamOptions])
+
+  // 필터 변경 시 선택 이름이 목록에 없으면 초기화
+  useEffect(() => {
+    if (selectedName && !nameOptions.includes(selectedName)) {
+      setSelectedName('')
+      setNameQuery('')
+    }
+  }, [selectedName, nameOptions])
+
   if (loading || !user) return null
 
-  const scoped = filter === 'mine' ? records.filter(r => r.email === email) : records
   const shown = scoped.filter(r => {
+    const matchesDept = dept === 'all' || resolveRecordDept(r) === dept
+    const matchesTeam = team === 'all' || resolveRecordTeam(r) === team
+    const matchesName = !selectedName || resolveRecordName(r) === selectedName
     const matchesWorkArea = workArea === 'all' || resolveWorkArea(r) === workArea
     const matchesAutomationArea = automationArea === 'all' || resolveAutomationArea(r) === automationArea
-    return matchesWorkArea && matchesAutomationArea
+    return matchesDept && matchesTeam && matchesName && matchesWorkArea && matchesAutomationArea
   })
+
+  function handleDeptChange(value) {
+    setDept(value)
+    setTeam('all')
+    setSelectedName('')
+    setNameQuery('')
+    setNameOpen(false)
+  }
+
+  function handleTeamChange(value) {
+    setTeam(value)
+    setSelectedName('')
+    setNameQuery('')
+    setNameOpen(false)
+  }
+
+  function selectName(name) {
+    setSelectedName(name)
+    setNameQuery(name)
+    setNameOpen(false)
+  }
+
+  function clearName() {
+    setSelectedName('')
+    setNameQuery('')
+    setNameOpen(false)
+  }
 
   return (
     <>
@@ -184,7 +288,7 @@ export default function List() {
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label>업무분야</label>
             <select value={workArea} onChange={e => setWorkArea(e.target.value)}>
@@ -201,11 +305,77 @@ export default function List() {
           </div>
         </div>
 
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label>사업부</label>
+            <select value={dept} onChange={e => handleDeptChange(e.target.value)}>
+              <option value="all">전체</option>
+              {DEPTS.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label>팀명</label>
+            <select value={team} onChange={e => handleTeamChange(e.target.value)} disabled={teamOptions.length === 0 && dept !== 'all'}>
+              <option value="all">전체</option>
+              {teamOptions.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="form-group" style={{ marginBottom: 16 }} ref={nameSearchRef}>
+          <label>이름</label>
+          <div className="name-search">
+            <input
+              type="text"
+              placeholder="이름 검색 후 선택"
+              value={nameQuery}
+              onChange={e => {
+                setNameQuery(e.target.value)
+                setSelectedName('')
+                setNameOpen(true)
+              }}
+              onFocus={() => setNameOpen(true)}
+              autoComplete="off"
+            />
+            {(nameQuery || selectedName) && (
+              <button
+                type="button"
+                className="name-search-clear"
+                aria-label="이름 필터 지우기"
+                onClick={clearName}
+              >
+                <i className="ti ti-x" />
+              </button>
+            )}
+            {nameOpen && (
+              <ul className="name-search-dropdown" role="listbox">
+                {filteredNameOptions.length === 0 ? (
+                  <li className="name-search-empty">일치하는 이름이 없습니다</li>
+                ) : (
+                  filteredNameOptions.map(n => (
+                    <li key={n}>
+                      <button
+                        type="button"
+                        className={selectedName === n ? 'active' : undefined}
+                        role="option"
+                        aria-selected={selectedName === n}
+                        onClick={() => selectName(n)}
+                      >
+                        {n}
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
+          </div>
+        </div>
+
         {fetching ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>불러오는 중...</div>
         ) : shown.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>
-            해당 분류의 실적이 없습니다
+            조건에 맞는 실적이 없습니다
           </div>
         ) : shown.map(r => {
           const u = r.users || {}
@@ -235,6 +405,7 @@ export default function List() {
             >
               <RecordSummaryHeader
                 userName={u.name || r.user_name}
+                userDept={r.user_dept || u.dept}
                 userTeam={u.team || r.user_team}
                 task={r.task}
                 statusCls={statusStyle.cls}
