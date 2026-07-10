@@ -9,13 +9,10 @@ import RecordSummaryHeader from '../components/RecordSummaryHeader'
 import RecordFeedbackThread from '../components/RecordFeedbackThread'
 import RecordAttachmentManager from '../components/RecordAttachmentManager'
 import { cleanupAttachmentsForRecord } from '../lib/attachments'
+import { ORG_DEPTS, recordDate, resolveRecordDept, resolveRecordTeam } from '../lib/orgStats'
 import Head from 'next/head'
 
-function recordDate(r) {
-  return r.date || (r.created_at ? r.created_at.slice(0, 10) : '')
-}
-
-const DEPTS = ['CCB', 'COB', 'CRB', 'CMS']
+const DEPTS = ORG_DEPTS
 const WORK_AREAS = ['수입', '수출', '요건', '환급', 'FTA', '경영지원', '자문', '프로젝트']
 const AUTOMATION_AREAS = ['기타', '엑셀자동화', '문서(PPT,Word)자동화', 'PDF 파싱', '메일작성자동화', 'API연동', '앱개발', '영문문서작성', '파일명변경자동화']
 
@@ -31,15 +28,6 @@ function classificationLabel(record) {
   const workArea = resolveWorkArea(record)
   const automationArea = resolveAutomationArea(record)
   return workArea ? `${workArea} · ${automationArea}` : automationArea
-}
-
-/** 등록 시점 스냅샷 우선, 없으면 현재 사용자 프로필 */
-function resolveRecordDept(record) {
-  return (record.user_dept || record.users?.dept || '').trim()
-}
-
-function resolveRecordTeam(record) {
-  return (record.user_team || record.users?.team || '').trim()
 }
 
 function resolveRecordName(record) {

@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../lib/useAuth'
 import { getRecords, getUsers } from '../lib/db'
 import { buildUserRankings, displayRankingName, rankDisplay, showRankingProfile } from '../lib/ranking'
+import { buildOrgStats } from '../lib/orgStats'
 import { shouldShowFinalFeedback } from '../lib/evalStatus'
 import RecordAttachments from '../components/RecordAttachments'
+import OrgParticipationBoard from '../components/OrgParticipationBoard'
 import Layout from '../components/Layout'
 import Head from 'next/head'
 
@@ -154,10 +156,17 @@ export default function Ranking() {
   const [records, setRecords] = useState([])
   const [fetching, setFetching] = useState(true)
   const [expandedEmail, setExpandedEmail] = useState(null)
+  const [activeTab, setActiveTab] = useState('personal')
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login')
   }, [loading, user])
+
+  useEffect(() => {
+    if (!router.isReady) return
+    const tab = router.query.tab
+    if (tab === 'org' || tab === 'personal') setActiveTab(tab)
+  }, [router.isReady, router.query.tab])
 
   useEffect(() => {
     if (!email) return
@@ -167,6 +176,17 @@ export default function Ranking() {
       setFetching(false)
     })
   }, [email])
+
+  const orgStats = useMemo(() => buildOrgStats(records), [records])
+
+  function selectTab(tab) {
+    setActiveTab(tab)
+    router.replace(
+      { pathname: '/ranking', query: tab === 'org' ? { tab: 'org' } : {} },
+      undefined,
+      { shallow: true }
+    )
+  }
 
   function toggleExpand(entryEmail) {
     setExpandedEmail(prev => (prev === entryEmail ? null : entryEmail))
@@ -185,45 +205,74 @@ export default function Ranking() {
     <>
       <Head><title>랭킹 보드 · AI 성과 관리</title></Head>
       <Layout title="랭킹 보드">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          대표 평가 점수 기준 전사 순위
-          {isCeo && <span style={{ display: 'block', marginTop: 4 }}>항목을 눌러 등록 실적을 확인할 수 있습니다</span>}
-        </p>
+        <div className="report-tabs" role="tablist" aria-label="랭킹 메뉴">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'personal'}
+            className={`report-tab ${activeTab === 'personal' ? 'active' : ''}`}
+            onClick={() => selectTab('personal')}
+          >
+            개인 랭킹
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'org'}
+            className={`report-tab ${activeTab === 'org' ? 'active' : ''}`}
+            onClick={() => selectTab('org')}
+          >
+            팀별랭킹
+          </button>
+        </div>
 
-        {fetching ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>불러오는 중...</div>
-        ) : ranked.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>아직 평가된 실적이 없습니다</div>
-        ) : (
+        {activeTab === 'personal' && (
           <>
-            {ranked.map(r => (
-              <RankRow
-                key={r.email}
-                entry={r}
-                viewerEmail={email}
-                isAdmin={isCeo}
-                isExpanded={expandedEmail === r.email}
-                onToggle={() => toggleExpand(r.email)}
-                userRecords={recordsByEmail[r.email] || []}
-              />
-            ))}
+            <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
+              대표 평가 점수 기준 전사 순위
+              {isCeo && <span style={{ display: 'block', marginTop: 4 }}>항목을 눌러 등록 실적을 확인할 수 있습니다</span>}
+            </p>
 
-            {!myEntry && (
-              <div
-                style={{
-                  marginTop: 16,
-                  padding: '14px 16px',
-                  borderRadius: 'var(--radius-lg)',
-                  background: 'var(--surface2)',
-                  fontSize: 13,
-                  color: 'var(--text3)',
-                  textAlign: 'center',
-                }}
-              >
-                아직 평가 완료된 실적이 없어 순위에 포함되지 않았습니다.
-              </div>
+            {fetching ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>불러오는 중...</div>
+            ) : ranked.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text3)' }}>아직 평가된 실적이 없습니다</div>
+            ) : (
+              <>
+                {ranked.map(r => (
+                  <RankRow
+                    key={r.email}
+                    entry={r}
+                    viewerEmail={email}
+                    isAdmin={isCeo}
+                    isExpanded={expandedEmail === r.email}
+                    onToggle={() => toggleExpand(r.email)}
+                    userRecords={recordsByEmail[r.email] || []}
+                  />
+                ))}
+
+                {!myEntry && (
+                  <div
+                    style={{
+                      marginTop: 16,
+                      padding: '14px 16px',
+                      borderRadius: 'var(--radius-lg)',
+                      background: 'var(--surface2)',
+                      fontSize: 13,
+                      color: 'var(--text3)',
+                      textAlign: 'center',
+                    }}
+                  >
+                    아직 평가 완료된 실적이 없어 순위에 포함되지 않았습니다.
+                  </div>
+                )}
+              </>
             )}
           </>
+        )}
+
+        {activeTab === 'org' && (
+          <OrgParticipationBoard orgStats={orgStats} loading={fetching} />
         )}
       </Layout>
     </>

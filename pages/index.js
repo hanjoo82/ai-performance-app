@@ -193,7 +193,16 @@ export default function Home() {
           <button className="card" style={{cursor:'pointer',textAlign:'left'}} onClick={() => router.push('/ranking')}>
             <i className="ti ti-trophy" style={{fontSize:22,color:'#f0c040',marginBottom:6,display:'block'}} />
             <div style={{fontWeight:600,fontSize:14}}>랭킹 보드</div>
-            <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>전사 순위 확인</div>
+            <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>개인 순위 확인</div>
+          </button>
+          <button
+            className="card"
+            style={{ cursor: 'pointer', textAlign: 'left', gridColumn: '1 / -1', border: '1.5px solid var(--accent-light)' }}
+            onClick={() => router.push('/ranking?tab=org')}
+          >
+            <i className="ti ti-chart-bar" style={{ fontSize: 22, color: 'var(--accent)', marginBottom: 6, display: 'block' }} />
+            <div style={{ fontWeight: 600, fontSize: 14 }}>팀별랭킹</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>사업부·팀 누적 참여율 경쟁</div>
           </button>
         </div>
 

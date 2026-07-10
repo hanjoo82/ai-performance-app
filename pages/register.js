@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { useAuth } from '../lib/useAuth'
 import { addRecord, getRecordById, updateRecord } from '../lib/db'
 import { uploadPendingFiles, validatePendingFiles } from '../lib/attachments'
+import { ORG_DEPTS } from '../lib/orgStats'
 import Layout from '../components/Layout'
 import AttachmentUpload from '../components/AttachmentUpload'
 import RecordAttachments from '../components/RecordAttachments'
@@ -176,10 +177,9 @@ export default function Register() {
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
               <select value={form.helperDept} onChange={e => f('helperDept', e.target.value)}>
                 <option value="">사업부</option>
-                <option value="CCB">CCB</option>
-                <option value="COB">COB</option>
-                <option value="CRB">CRB</option>
-                <option value="CMS">CMS</option>
+                {ORG_DEPTS.map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
               </select>
               <input placeholder="팀명" value={form.helperTeam} onChange={e => f('helperTeam', e.target.value)} />
               <input placeholder="직책" value={form.helperRole} onChange={e => f('helperRole', e.target.value)} />

@@ -370,6 +370,281 @@ textarea { resize: vertical; min-height: 80px; }
   border-radius: 4px;
 }
 
+/* 보고서 탭 */
+.report-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.report-tab {
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 8px;
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  line-height: 1.3;
+}
+.report-tab.active {
+  background: var(--surface);
+  color: var(--accent-text);
+  box-shadow: 0 1px 2px rgba(20, 36, 58, 0.08);
+}
+
+/* 조직 통계 / 참여율 경쟁 보드 */
+.org-board-intro {
+  font-size: 13px;
+  color: var(--text3);
+  margin: 0 0 14px;
+  line-height: 1.45;
+}
+.org-board-footnote {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 12px;
+  line-height: 1.5;
+}
+.org-stats-summary {
+  margin-bottom: 14px;
+}
+.org-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.org-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.org-section-hint {
+  font-weight: 400;
+  color: var(--text3);
+  font-size: 12px;
+  margin-left: 8px;
+}
+.org-dept-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+@media (min-width: 640px) {
+  .org-dept-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.org-dept-card {
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+}
+.org-dept-card:hover {
+  border-color: var(--accent);
+}
+.org-dept-card.active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+.org-dept-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.org-dept-name {
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 0;
+}
+.org-dept-rate {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent-text);
+  margin-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.org-dept-sub {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 6px;
+}
+.org-headcount {
+  font-weight: 500;
+  color: var(--text3);
+  font-size: 12px;
+}
+.org-rank-badge {
+  flex-shrink: 0;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--text3);
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.org-rank-badge.top {
+  background: var(--gold-light);
+  color: var(--gold-text);
+  font-size: 14px;
+}
+.org-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface2);
+  overflow: hidden;
+}
+.org-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+.org-team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.org-team-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.org-team-card.top {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+.org-team-card.open {
+  border-color: var(--accent);
+}
+.org-team-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.org-team-row:hover {
+  background: var(--surface2);
+}
+.org-team-main {
+  flex: 1;
+  min-width: 0;
+}
+.org-team-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+.org-team-dept {
+  font-size: 11px;
+  color: var(--text3);
+  margin: 2px 0 8px;
+}
+.org-team-side {
+  text-align: right;
+  flex-shrink: 0;
+}
+.org-team-rate {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+.org-team-meta {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+.org-team-chevron {
+  color: var(--text3);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.org-registrants {
+  border-top: 1px solid var(--border);
+  padding: 10px 12px 12px;
+  background: var(--surface2);
+}
+.org-registrants-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+.org-registrants-title span {
+  font-weight: 500;
+  color: var(--text3);
+}
+.org-registrants-empty {
+  font-size: 12px;
+  color: var(--text3);
+  text-align: center;
+  padding: 8px 0;
+}
+.org-registrants-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.org-registrants-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+.org-registrant-name {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.org-registrant-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text3);
+  font-variant-numeric: tabular-nums;
+}
+
 /* 알림 */
 .alert {
   padding: 12px 14px;
@@ -410,7 +685,7 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 @media print {
-  .bottom-nav, .btn, .page-header-actions { display: none !important; }
+  .bottom-nav, .btn, .page-header-actions, .report-tabs, .org-dept-grid, .org-stats-summary, .org-team-list, .org-board-intro, .org-board-footnote { display: none !important; }
   body { background: white; }
   .card { break-inside: avoid; border: 1px solid #ddd; }
 }

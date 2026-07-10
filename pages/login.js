@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../lib/useAuth'
 import { loadSavedEmailPrefs, persistSavedEmail } from '../lib/savedEmail'
 import { getSupabaseConfigError, withTimeout } from '../lib/supabaseConfig'
 import { normalizeEmail } from '../lib/email'
+import { ORG_DEPTS, TEAM_ROSTER } from '../lib/orgStats'
 import { supabase } from '../lib/supabase'
 import Head from 'next/head'
 import Image from 'next/image'
@@ -21,6 +22,15 @@ export default function Login() {
   const [dbWarning, setDbWarning] = useState('')
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [isInstallable, setIsInstallable] = useState(false)
+
+  const teamOptions = useMemo(
+    () => (form.dept ? (TEAM_ROSTER[form.dept] || []).map((row) => row.name) : []),
+    [form.dept]
+  )
+
+  function handleDeptChange(dept) {
+    setForm((prev) => ({ ...prev, dept, team: '' }))
+  }
 
   useEffect(() => {
     if (getSupabaseConfigError()) return
@@ -222,17 +232,27 @@ export default function Login() {
                 </div>
                 <div className="form-group">
                   <label>소속 사업부 *</label>
-                  <select value={form.dept} onChange={e => setForm({...form, dept: e.target.value})}>
+                  <select value={form.dept} onChange={e => handleDeptChange(e.target.value)}>
                     <option value="">선택해주세요</option>
-                    <option value="CCB">CCB</option>
-                    <option value="COB">COB</option>
-                    <option value="CRB">CRB</option>
-                    <option value="CMS">CMS</option>
+                    {ORG_DEPTS.map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="form-group">
                   <label>팀명 *</label>
-                  <input placeholder="영업1팀" value={form.team} onChange={e => setForm({...form, team: e.target.value})} />
+                  <select
+                    value={form.team}
+                    onChange={e => setForm({ ...form, team: e.target.value })}
+                    disabled={!form.dept || teamOptions.length === 0}
+                  >
+                    <option value="">
+                      {!form.dept ? '사업부를 먼저 선택해주세요' : '선택해주세요'}
+                    </option>
+                    {teamOptions.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label>직책 *</label>
